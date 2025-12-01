@@ -1,20 +1,45 @@
 ---
-title: "Analisi dei determinanti della qualità dell'aria nel Nord Italia"
-subtitle: "Analisi di regressione sul dataset Agrimonia (Gruppo Luna)"
+title: "Analysis of Air Quality Drivers in Lombardy: The Agrimonia Case Study"
 author: 
+  - "Group LUNA"
   - "Mattia Franchini (1099581)"
   - "Fabio Ghislanzoni (1099423)"
   - "Lino Mazzoleni (1098962)"
   - "Michele Bisignano (1099385)"
 date: "`r Sys.Date()`"
-output: 
+output:
   html_document:
+    theme: flatly
     toc: true
     toc_float: true
     number_sections: true
-    theme: flatly
+    code_folding: show
+    df_print: paged
 ---
 
 ```{r setup, include=FALSE}
-knitr::opts_chunk$set(echo = FALSE, message = FALSE, warning = FALSE)
-# echo=FALSE nasconde il codice per stare nelle 7 pagine richieste
+# GLOBAL SETTINGS
+# echo = TRUE: The professor explicitly asked to include code in the page count.
+# warning/message = FALSE: Essential to save space and keep the report professional.
+# fig.align = "center": Centers all plots.
+knitr::opts_chunk$set(
+  echo = TRUE, 
+  warning = FALSE, 
+  message = FALSE, 
+  fig.align = "center",
+  fig.width = 10, # Wide figures to save vertical space
+  fig.height = 6
+)
+
+# LOADING LIBRARIES
+# We use suppressPackageStartupMessages to ensure no junk text appears in the html
+suppressPackageStartupMessages({
+  library(tidyverse)  # Data manipulation and plotting
+  library(here)       # Relative paths
+  library(lubridate)  # Date handling
+  library(corrplot)   # Correlation plots
+  library(knitr)      # Tables
+  library(kableExtra) # Table styling
+  library(car)        # VIF
+  library(lmtest)     # Diagnostic tests
+})
