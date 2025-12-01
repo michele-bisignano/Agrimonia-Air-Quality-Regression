@@ -47,3 +47,39 @@ po/*~
 
 # RStudio Connect folder
 rsconnect/
+
+#MacOS
+.DS_Store
+
+# Visual Studio specific
+.vs/
+*.user
+*.suo
+*.userosscache
+*.sln.docstates
+
+# Build results
+bin/
+obj/
+out/
+
+# Rider / ReSharper
+.idea/
+*.DotSettings.user
+
+# Visual Studio Code
+.vscode/
+
+# Mac system files
+.DS_Store
+
+# Node / npm (se presenti)
+node_modules/
+
+# Logs
+*.log
+
+# Packages
+*.nupkg
+*.snupkg
+
