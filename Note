@@ -1,0 +1,40 @@
+Scegliere 1 stazione
+Dobbiamo pulire il database
+
+LA_land_use: Land use across 44 sectors (Categorical)
+# non usare, perchè per singola stazione sono costanti
+
+LA_soil_use: Lombardy soil use across 21 sectors (Categorical)
+# non usare, perchè per singola stazione sono costanti
+
+EM_: non usare
+
+controlla che siano misurate:
+Aqnh3 AQCo pm25, pm10 aqsol
+
+noltre, c'è una ragione statistica precisa (da dire all'esame):
+Le variabili EM_ (Emissioni), LI_ (Livestock/Allevamenti) e LA_ (Land Use/Uso suolo) nel dataset Agrimonia sono spesso stime annuali o costanti. 
+
+# Possibili quesiti di ricerca
+
+Qual'''''è l'effetto della stagione e della temperatura sull'inquinamento dell'aria? 
+
+Che ruolo ha il vento nel ridurre gli inquinanti nell'aria? 
+
+Ridurre gli allevamenti di bovini può ridurre l'inquinamento nell'aria? Se si, per quali inquinanti?
+
+Che effetto hanno le precipitazioni nel determinare la variabilità nella qualità dell'aria?
+
+
+COSE DA INSERIRE NEL REPORT/ DIRE ALL'ORALE
+1
+Perché eliminare EM_ (Emissioni)?
+Le variabili che iniziano con EM_ (es. EM_nox_traffic, EM_nh3_livestock) nel dataset Agrimonia non sono misurazioni fatte da sensori, ma sono stime modellistiche (spesso derivate dagli inventari regionali INEMAR).
+Il problema: Queste stime sono spesso calcolate a livello annuale e poi "spalmate" sui giorni usando dei profili statistici standard.
+Perché il prof le vieta: Se usate queste variabili per predire l'inquinamento, rischiate di creare un modello "tautologico" (ovvio) o falsato, perché state usando una stima teorica per predire un dato reale. Inoltre, l'obiettivo del corso è vedere l'impatto della Meteorologia
+(XX) sull'inquinamento (YY), non testare la bontà degli inventari delle emissioni.
+
+
+2
+
+
