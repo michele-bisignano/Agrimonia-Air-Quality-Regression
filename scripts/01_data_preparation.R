@@ -146,10 +146,57 @@ df_final <- df_intermediate %>%
   )
 
 # ==============================================================================
+# 5.1. COVID-19 DATA INTEGRATION
+# ==============================================================================
+
+# Objective: Incorporate the Oxford Covid-19 Government Response Tracker (OxCGRT)
+# to account for lockdown effects on air quality using 'StringencyIndex_Average'.
+
+covid_path <- here("data", "raw", "OxCGRT_compact_national_v1.csv")
+
+if(file.exists(covid_path)) {
+  
+  message("Loading and processing COVID-19 data...")
+  
+  # 1. Load and Filter for Italy
+  # show_col_types = FALSE prevents clutter in the console
+  covid_data <- read_csv(covid_path, show_col_types = FALSE) %>%
+    filter(CountryName == "Italy") %>% 
+    
+    # 2. Select only relevant columns
+    # We choose StringencyIndex_Average as it represents closure policies
+    select(Date, StringencyIndex = StringencyIndex_Average) %>% 
+    
+    # 3. Fix Date Format
+    # The raw CSV has numeric dates (e.g., 20200101). ymd() converts them properly.
+    mutate(Date = ymd(Date))
+  
+  # 4. Join with Main Dataset
+  # We use left_join to ensure we keep all Agrimonia rows (2016-2021)
+  df_final <- df_final %>% 
+    left_join(covid_data, by = "Date") %>% 
+    
+    # 5. Handle Missing Values (Pre-2020)
+    # Before 2020, Covid did not exist, so the Stringency Index is NA.
+    # We impute 0 for those dates (meaning: zero restrictions).
+    mutate(StringencyIndex = replace_na(StringencyIndex, 0))
+  
+  message("COVID-19 Stringency Index successfully added.")
+  
+  # 6. Quick Correlation Check (Optional)
+  # Prints the correlation to verify if restrictions negatively affect pollution as expected
+  cor_val <- cor(df_final$Log_Y, df_final$StringencyIndex, use="complete.obs")
+  message(paste("Correlation between Log(Pollutant) and Stringency Index:", round(cor_val, 3)))
+  
+} else {
+  warning("COVID data file not found in data/raw/. Skipping this step.")
+}
+
+# ==============================================================================
 # 6. SAVE FINAL DATASET
 # ==============================================================================
 
-# Save the file ready for RMarkdown
+# Save the cleaned file ready for RMarkdown analysis
 output_path <- here("data", "processed", "final_saronno_pm10.rds")
 saveRDS(df_final, file = output_path)
 
@@ -157,5 +204,6 @@ message("---------------------------------------------------------")
 message(paste("✅ SUCCESS! Final dataset saved to:", output_path))
 message(paste("   Station:", selected_station))
 message(paste("   Pollutant:", selected_pollutant))
-message(paste("   Total Days:", nrow(df_final)))
+message(paste("   Total Observations:", nrow(df_final)))
+message(paste("   Covid Data Integrated:", exists("covid_data")))
 message("---------------------------------------------------------")
