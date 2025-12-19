@@ -30,16 +30,17 @@ if(file.exists(raw_data_path)) {
 # ==============================================================================
 
 # METHODOLOGICAL NOTE:
-#'EM_' variables are removed as they are model-based inventory estimates (often annual) rather than empirical observations.
-# Using theoretical proxies to predict real pollution levels introduces circularity and potential bias.
-# The analysis focuses exclusively on the impact of measured meteorological variables on air quality to ensure data integrity.
+# 'EM_' variables are removed as they are model-based inventory estimates (often annual) 
+# rather than empirical observations. Using theoretical proxies to predict real pollution 
+# levels introduces circularity and potential bias.
+# The analysis focuses exclusively on the impact of measured meteorological variables 
+# on air quality to ensure data integrity.
+
 df_intermediate <- agri_raw %>% 
   # Remove columns starting with "EM_"
   select(-starts_with("EM_"))
 
 message("Step 3 Complete: 'EM_' variables removed.")
-
-# ... (Previous steps: Load libraries, load data, remove EM_) ...
 
 # ==============================================================================
 # 4. INTELLIGENT RANKING SYSTEM (Best Station per Pollutant)
@@ -61,7 +62,7 @@ station_stats <- df_intermediate %>%
 find_winner <- function(data, pollutant_col, pollutant_name) {
   winner <- data %>%
     arrange(!!sym(pollutant_col)) %>% # Sort by lowest missing %
-    slice(1) %>%                      # Take the top 1
+    slice(3) %>%                      # Selecting the 3rd place because the first 2 were outside Italy
     select(NameStation, Score = !!sym(pollutant_col))
   
   paste0("🏆 Best Station for ", pollutant_name, ": ", 
@@ -81,18 +82,80 @@ print(find_winner(station_stats, "SO2_Miss",  "SO2"))
 
 message("=======================================================\n")
 
-# --- DETAILED TOP 5 VIEW (Optional, for manual check) ---
-# If you want to see the runners-up for PM2.5 specifically:
-# print(station_stats %>% select(NameStation, PM25_Miss) %>% arrange(PM25_Miss) %>% head(5))
 # ==============================================================================
-# 5. Save Intermediate Data
+# 5. FINAL SELECTION & CLEANING (Based on team decision)
 # ==============================================================================
 
-# We save this intermediate file. In the next steps (Rmd), we can decide 
-# if we want to filter for one specific station or keep them all.
+# Choice based on the previous analysis
+selected_station   <- "Saronno Via Santuario" 
+selected_pollutant <- "AQ_pm10"            
 
-output_file <- here("data", "processed", "agrimonia_no_EM.rds")
-saveRDS(df_intermediate, file = output_file)
+message(paste("Creating final dataset for station:", selected_station))
+message(paste("Target Variable (Y):", selected_pollutant))
 
-message(paste("Intermediate cleaned dataset saved to:", output_file))
+df_final <- df_intermediate %>% 
+  # 1. Filter only for the selected station
+  filter(NameStation == selected_station) %>% 
+  
+  # 2. Select variables
+  # Y: The chosen pollutant (PM10)
+  # X: Weather variables (Temperature, Wind, Precipitation, Humidity)
+  # Note: We remove everything else to keep the dataset lightweight
+  select(
+    Date = Time,
+    Y = all_of(selected_pollutant),  # Rename AQ_pm10 to 'Y'
+    
+    # Weather Covariates (X)
+    Temp = WE_temp_2m,
+    WindSpeed = WE_wind_speed_10m_mean,
+    Precipitation = WE_tot_precipitation,
+    Humidity = WE_rh_mean,
+    
+    # Wind Direction (Important factor!)
+    WindDir = WE_mode_wind_direction_10m
+  ) %>% 
+  
+  # 3. Handle Missing Values
+  # We simply remove them. This is the cleanest and most honest approach 
+  # given the low percentage of missing data.
+  drop_na() %>% 
+  
+  # 4. Feature Engineering (Model Preparation)
+  mutate(
+    Date = as.Date(Date),
+    
+    # Logarithmic Transformation (Crucial for normalizing residuals)
+    # We add +1 to avoid log(0) in case there are days with 0 PM10 (rare but possible)
+    Log_Y = log(Y + 1), 
+    
+    # Create Seasonality
+    Month = month(Date),
+    Season = case_when(
+      Month %in% c(12, 1, 2) ~ "Winter",
+      Month %in% c(3, 4, 5)  ~ "Spring",
+      Month %in% c(6, 7, 8)  ~ "Summer",
+      Month %in% c(9, 10, 11) ~ "Autumn"
+    ),
+    # Set 'Winter' as the baseline (reference) level for contrasts
+    Season = factor(Season, levels = c("Winter", "Spring", "Summer", "Autumn")),
+    
+    # Handle Wind Direction
+    # If WindDir has too many rare levels, we might need to group them,
+    # but for now, we simply convert it to a factor.
+    WindDir = as.factor(WindDir)
+  )
 
+# ==============================================================================
+# 6. SAVE FINAL DATASET
+# ==============================================================================
+
+# Save the file ready for RMarkdown
+output_path <- here("data", "processed", "final_saronno_pm10.rds")
+saveRDS(df_final, file = output_path)
+
+message("---------------------------------------------------------")
+message(paste("✅ SUCCESS! Final dataset saved to:", output_path))
+message(paste("   Station:", selected_station))
+message(paste("   Pollutant:", selected_pollutant))
+message(paste("   Total Days:", nrow(df_final)))
+message("---------------------------------------------------------")
