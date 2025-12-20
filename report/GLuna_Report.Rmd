@@ -1,5 +1,5 @@
 ---
-title: "Analysis of Air Quality Drivers in Lombardy: The Agrimonia Case Study"
+title: "Analysis of PM10 Drivers in Lombardy: A Time-Series Regression Approach"
 author: 
   - "Group LUNA"
   - "Mattia Franchini (1099581)"
@@ -18,28 +18,179 @@ output:
 ---
 
 ```{r setup, include=FALSE}
+# ==============================================================================
 # GLOBAL SETTINGS
-# echo = TRUE: The professor explicitly asked to include code in the page count.
-# warning/message = FALSE: Essential to save space and keep the report professional.
+# ==============================================================================
+# echo = TRUE: Code is visible (as required by the professor).
+# warning/message = FALSE: Keeps the report clean from errors/loading bars.
 # fig.align = "center": Centers all plots.
 knitr::opts_chunk$set(
   echo = TRUE, 
   warning = FALSE, 
   message = FALSE, 
-  fig.align = "center",
-  fig.width = 10, # Wide figures to save vertical space
+  fig.align = "center", 
+  fig.width = 10, 
   fig.height = 6
 )
 
-# LOADING LIBRARIES
-# We use suppressPackageStartupMessages to ensure no junk text appears in the html
-suppressPackageStartupMessages({
-  library(tidyverse)  # Data manipulation and plotting
-  library(here)       # Relative paths
-  library(lubridate)  # Date handling
-  library(corrplot)   # Correlation plots
-  library(knitr)      # Tables
-  library(kableExtra) # Table styling
-  library(car)        # VIF
-  library(lmtest)     # Diagnostic tests
-})
+# Load libraries using pacman to ensure reproducibility
+if (!require("pacman")) install.packages("pacman")
+pacman::p_load(tidyverse, here, lubridate, knitr, kableExtra, corrplot, car, lmtest, patchwork, broom)
+
+# Source custom functions for plotting and tables
+# This keeps the Rmd file clean and readable
+source(here("scripts", "02_functions.R"))
+```
+
+# 1. Introduction
+
+Air pollution in the Lombardy region is a critical environmental issue due to its specific orography (the Po Valley basin) and high industrial density. The objective of this study is to analyze the determinants of **PM10** (Particulate Matter < 10 µm) concentrations, investigating the role of meteorological variables and human activity restrictions.
+
+Specifically, we aim to:
+1.  **Meteorological Drivers:** Quantify the effect of Wind, Temperature, and Precipitation on pollution abatement.
+2.  **The "Covid Effect":** Assess the impact of the **COVID-19 lockdown** measures on air quality, treating the 2020 restrictions as a "natural experiment" on reduced mobility and emissions.
+
+# 2. Data Selection and Preparation
+
+The analysis is based on the *Agrimonia* dataset (2016-2021). To ensure robust statistical inference, we adopted a **Time-Series approach**, fixing the spatial dimension to focus exclusively on temporal dynamics.
+
+## 2.1 Station Selection Strategy
+
+We performed a preliminary data quality assessment to identify the optimal station for analysis.
+
+1.  **Missing Value Ranking:** We ranked all stations by the percentage of missing values for the target variable (PM10).
+2.  **The "Ticino" Case:** The absolute best station in terms of data completeness was `Ticino_STA-CH0033A` (0.23% missing). However, this station is located in **Switzerland** (University of Lugano). Since our objective includes analyzing the impact of **Italian COVID-19 restrictions** (which differed significantly from Swiss policies), we discarded this station to ensure consistency.
+3.  **Final Choice:** We selected **Saronno Via Santuario**, which ranked as the best **Italian** station for PM10 data availability.
+
+## 2.2 Data Cleaning and Feature Engineering
+
+The raw data was processed using an external script (`01_data_preparation.R`) to ensure reproducibility. The following preprocessing steps were applied:
+
+1.  **Variable Exclusion:**
+    *   **Emission Estimates (`EM_`)**: Removed as they are model-based proxies (often annual estimates), not direct observations. Using them to predict pollution would introduce circularity.
+    *   **Static Structural Variables (`LI_`, `LA_`)**: Geographic variables (Livestock density, Land Use, Altitude) are constant over time for a single station. They have zero variance and cannot be used in a regression model (they would be perfectly collinear with the intercept).
+
+2.  **COVID-19 Data Integration:**
+    *   We integrated the *Oxford Covid-19 Government Response Tracker (OxCGRT)* dataset.
+    *   We selected the **Stringency Index** for Italy, which aggregates closure policies (schools, workplaces, travel bans). Missing values (pre-2020) were imputed with `0`.
+
+3.  **Transformations:**
+    *   **Seasonality:** A categorical variable `Season` was created, with *Winter* set as the reference level.
+    *   **Log-Transformation:** Pollution data is typically right-skewed. We computed $Log(Y) = \log(PM10 + 1)$ to normalize the distribution.
+
+```{r load_data}
+# Loading the final processed dataset
+# The dataset has been cleaned and saved as an .rds file in the 'data/processed' folder
+df <- readRDS(here("data", "processed", "final_saronno_pm10.rds"))
+
+# Display representative rows using our custom function
+show_key_dates(df)
+```
+
+# 3. Exploratory Data Analysis (EDA)
+
+Before modeling, we inspect the distribution of variables and their relationships using visualization tools.
+
+## 3.1 Target Variable Distribution
+We compare the original PM10 distribution with the log-transformed version.
+
+```{r eda_hist, fig.height=4, fig.width=10}
+p1 <- ggplot(df, aes(x=Y)) + 
+  geom_histogram(fill="lightblue", color="white", bins=30) +
+  labs(title="Original PM10 Distribution", x="PM10 (ug/m3)") + theme_minimal()
+
+p2 <- ggplot(df, aes(x=Log_Y)) + 
+  geom_histogram(fill="lightgreen", color="white", bins=30) +
+  labs(title="Log-Transformed PM10", x="Log(PM10)") + theme_minimal()
+
+# Combine plots
+p1 + p2
+```
+
+**Observation:** The original distribution is highly skewed. The log-transformation significantly improves normality, satisfying the assumption for OLS regression. We will use `Log_Y` as our dependent variable.
+
+## 3.2 Time Series Analysis: Pollution vs Lockdown
+We visualize the trend of PM10 over time, overlaying the Covid-19 Stringency Index to observe potential correlations.
+
+```{r time_series, fig.height=5, fig.width=10}
+# Using custom function from 02_functions.R
+plot_covid_trend(df, title_text = "PM10 Trends and Lockdown Restrictions (Saronno)")
+```
+
+**Observation:** We can observe a clear seasonal pattern (peaks in winter, lows in summer). Interestingly, during the first strict lockdown (March-April 2020), PM10 levels dropped significantly despite it being a transition season.
+
+## 3.3 Correlation Analysis
+We check for multicollinearity among the numeric covariates.
+
+```{r correlation, fig.height=6, fig.width=6}
+# Using custom function from 02_functions.R
+plot_correlations(df)
+```
+
+**Observation:**
+*   **Temperature** is negatively correlated with PM10 (higher temp -> lower pollution, likely due to better atmospheric mixing and lack of heating).
+*   **Wind Speed** shows a negative correlation (dispersion effect).
+*   There are no extreme correlations (>0.8) between covariates, suggesting no severe multicollinearity issues.
+
+# 4. Regression Modeling
+
+We fit two linear models to test our hypotheses.
+
+*   **Model 1 (Meteorological):** Explains pollution using only weather variables.
+*   **Model 2 (Full):** Adds **Seasonality** and the **Covid Stringency Index**.
+
+```{r models}
+# Model 1: Meteorology Only
+model_meteo <- lm(Log_Y ~ Temp + WindSpeed + Precipitation + Humidity + WindDir, data = df)
+
+# Model 2: Meteorology + Seasonality + Covid Index
+model_full <- lm(Log_Y ~ Temp + WindSpeed + Precipitation + Humidity + WindDir + Season + StringencyIndex, data = df)
+
+# Display results for the Full Model
+print_model_table(model_full, caption_text = "Full Model Results")
+```
+
+## 4.1 Model Comparison
+We compare the performance of the two models using Adjusted R-squared and AIC.
+
+```{r comparison, echo=FALSE}
+# Using custom function from 02_functions.R
+compare_models(list("Meteo Only" = model_meteo, "Full (Meteo + Covid + Season)" = model_full))
+```
+
+**Result:** The **Full Model** shows a significantly higher Adjusted $R^2$ and a lower AIC, indicating that seasonality and human activity restrictions (Covid) add substantial explanatory power to the model.
+
+# 5. Diagnostics
+
+We validate the assumptions of the linear regression model for the chosen Full Model.
+
+## 5.1 Multicollinearity (VIF)
+We ensure that the independent variables are not too correlated with each other.
+
+```{r vif, echo=FALSE}
+print_vif(model_full)
+```
+**Comment:** All VIF values are well below the critical threshold (usually 5 or 10), confirming that multicollinearity is not a concern.
+
+## 5.2 Residual Analysis
+We visualize residuals to check for homoscedasticity and normality.
+
+```{r diagnostics, fig.height=8, fig.width=10}
+par(mfrow=c(2,2))
+plot(model_full)
+```
+
+**Diagnostics Interpretation:**
+1.  **Residuals vs Fitted:** The cloud is roughly horizontal around zero, suggesting linearity holds, though there is slight heteroscedasticity.
+2.  **Normal Q-Q:** The points follow the diagonal line reasonably well, confirming that the residuals are approximately normally distributed (thanks to the Log transformation).
+
+# 6. Conclusions
+
+Our analysis of PM10 concentrations at Saronno Via Santuario leads to the following conclusions:
+
+1.  **Meteorology:** Weather plays a crucial role. **Wind Speed** and **Precipitation** have significant negative coefficients, confirming their dispersion and washout effects on particulate matter.
+2.  **Seasonality:** Pollution is strictly seasonal, with **Winter** showing significantly higher levels compared to other seasons (likely due to heating systems and atmospheric stability).
+3.  **Covid-19 Impact:** The **Stringency Index** is statistically significant with a **negative coefficient**. This confirms our hypothesis: stricter government restrictions (lockdowns) led to a measurable decrease in PM10 concentrations, even after adjusting for meteorological conditions.
+
+Future developments could explore non-linear relationships (e.g., GAMs) or include dynamic lag effects for wind and rain.
+```
