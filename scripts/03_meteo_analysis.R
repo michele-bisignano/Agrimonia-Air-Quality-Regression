@@ -40,4 +40,26 @@ ggsave(here("output", "02_histograms.png"), plot = p_hist, width = 10, height = 
 message("Generating Seasonality Plot...")
 p_seas <- plot_seasonality(df)
 ggsave(here("output", "03_seasonality.png"), plot = p_seas, width = 6, height = 4)
+# ... after saving the plots ...
 
+# D. Generate Wind Summary Table (Dataframe)
+message("Generating Wind Statistics Table...")
+
+wind_stats <- df %>%
+  group_by(WindDir) %>%
+  summarise(
+    # Count the number of days the wind blew from each direction (Frequency)
+    Days = n(),
+    
+    # Calculate the Median of the Log values (as shown in the plots)
+    Median_Log = median(Log_Y, na.rm = TRUE),
+    
+    # IMPORTANT: Back-transform to the original scale (ug/m3) for better interpretability
+    # Formula: Log_Y = log(PM10 + 1) -> PM10 = exp(Log_Y) - 1
+    Median_PM10 = exp(median(Log_Y, na.rm = TRUE)) - 1
+  ) %>%
+  # Sort from highest to lowest concentration (most polluted to cleanest)
+  arrange(desc(Median_Log))
+
+# Save the table as an .rds file to load it into the final report
+saveRDS(wind_stats, here("output", "wind_stats_table.rds"))
