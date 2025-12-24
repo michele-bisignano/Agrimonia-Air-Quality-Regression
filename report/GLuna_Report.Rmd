@@ -153,23 +153,27 @@ The data confirms a significant **pollution gradient** based on wind trajectory:
 *   **The "Milan Effect":** Winds from the **South (S)** and **South-East (SE)** are associated with the highest PM10 levels ($\approx 25-28 \mu g/m^3$). This confirms that air masses moving from the Milan metropolitan area transport urban pollutants towards Saronno.
 *   **Dispersion:** Conversely, **SW** and **NE** winds correspond to the lowest concentrations ($\approx 19 \mu g/m^3$), acting as the primary natural cleaning agents for the site.
 
-## Correlation Analysis
+### **Correlation Analysis**
 
-Before fitting the regression model, we inspect the **correlation matrix** of the numeric variables. This step is crucial for two reasons:
-1.  **Variable Selection:** To confirm which meteorological factors actually have a relationship with PM10 levels.
-2.  **Multicollinearity Check:** To ensure that the independent variables (the $X$s) are not too highly correlated with each other, which could destabilize the model estimates.
+Prior to model fitting, we examine the **correlation matrix** of the numerical variables. This analysis serves two primary objectives:
+
+*   **Variable Selection:** Identifying which meteorological and social factors share a significant relationship with PM10 levels.
+*   **Multicollinearity Check:** Ensuring that independent variables are not excessively correlated ($|r| > 0.7$), which could destabilize regression coefficients.
 
 ```{r correlation_plot, echo=FALSE, fig.height=6, fig.width=6, fig.cap="Pearson Correlation Matrix"}
 # We use the custom function defined in scripts/02_functions.R
 plot_correlations(df)
 ```
 
-**Interpretation:**
-*   **Target Variable (Log_Y):** We observe a clear **negative correlation** with **Wind Speed** and **Temperature**. This aligns with physical expectations: stronger winds disperse pollutants, and higher temperatures (often associated with unstable atmospheric conditions or lack of domestic heating) reduce PM10 concentrations.
-*   **Covid Impact:** The **StringencyIndex** shows a negative correlation with pollution, suggesting that higher restrictions are indeed associated with lower PM10 levels.
-*   **Multicollinearity:** The correlations between the predictor variables are moderate. Since no pair exceeds $0.7 - 0.8$, we do not expect severe multicollinearity issues.
+### **Key Findings**
 
-## Regression Modeling
+1.  **Target Variable (Log_Y):**
+    *   **Negative Correlation with Wind Speed & Temp:** Consistent with atmospheric physics, stronger winds facilitate pollutant dispersion, while higher temperatures often correlate with increased boundary layer height and reduced domestic heating emissions.
+2.  **Model Stability:**
+    *   **Multicollinearity:** Most predictors show moderate to low inter-correlations. Since no pair exceeds the critical threshold of **0.7**, we expect the regression model to be stable and free from significant multicollinearity bias.
+
+
+### Regression Modeling
 
 We fit two linear models to test our hypotheses.
 
@@ -188,7 +192,7 @@ model_full <- lm(Log_Y ~ Temp + WindSpeed + Precipitation + Humidity +
 print_model_table(model_full, caption_text = "Full Model Results")
 ```
 
-## 5.1 Model Comparison
+### Model Comparison
 
 We compare the models using **Adjusted R-squared** (higher is better) and **AIC** (lower is better).
 
@@ -198,7 +202,7 @@ compare_models(list("Meteo Only" = model_meteo, "Full (Meteo + Covid + Season)" 
 
 **Result:** The **Full Model** performs significantly better. The inclusion of Seasonality and the Covid Index increases the Adjusted $R^2$ and lowers the AIC, confirming that human factors and seasonal cycles are essential to explain PM10 variability.
 
-## 5.2 Diagnostics
+### Diagnostics
 
 We check the assumptions of the linear regression model for the chosen Full Model.
 
@@ -207,11 +211,12 @@ par(mfrow=c(2,2))
 plot(model_full)
 ```
 
-**Interpretation:**
+**Interpretation**:
+
 1.  **Residuals vs Fitted:** The red line is relatively flat around zero, suggesting linearity holds reasonably well.
 2.  **Normal Q-Q:** The points follow the diagonal line, confirming that the Log-transformation of PM10 successfully normalized the residuals.
 
-# 6. Conclusions
+# Conclusions
 
 Our analysis of PM10 concentrations at **Saronno Via Santuario** leads to the following key findings:
 
