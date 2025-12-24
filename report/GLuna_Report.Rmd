@@ -42,13 +42,16 @@ pacman::p_load(tidyverse, here, lubridate, knitr, kableExtra, corrplot, car, lmt
 source(here("scripts", "02_functions.R"))
 ```
 
-# 1. Introduction
+# 1. Project Overview and Objectives
 
-Air pollution in the Lombardy region is a critical environmental issue due to its specific orography (the Po Valley basin) and high industrial density. The objective of this study is to analyze the determinants of **PM10** (Particulate Matter < 10 µm) concentrations, investigating the role of meteorological variables and human activity restrictions.
+Air pollution in the Lombardy region is a critical environmental issue due to the specific orography of the Po Valley and high industrial density.
+
+To systematically analyze this phenomenon, we structured our research into **two distinct parts**:
+
 
 Specifically, we aim to:
-1.  **Meteorological Drivers:** Quantify the effect of Wind, Temperature, and Precipitation on pollution abatement.
-2.  **The "Covid Effect":** Assess the impact of the **COVID-19 lockdown** measures on air quality, treating the 2020 restrictions as a "natural experiment" on reduced mobility and emissions.
+1.  **Meteorological Drivers of PM10**. We focus on **PM10** levels in the strategic station of **Saronno**. The goal is to build a robust regression model to quantify how natural factors (wind direction, precipitation, seasonality) influence particulate matter accumulation.
+2.  **The "Covid Effect"**:  In the second stage, we will select the specific air pollutant that shows the highest correlation with industrial activity. We will then analyze whether the **COVID-19 lockdown restrictions** (Stringency Index) significantly reduced levels of that specific pollutant, treating the 2020 lockdown as a natural experiment.
 
 # 2. Data Selection and Preparation
 
@@ -78,34 +81,39 @@ The raw data was processed using an external script (`01_data_preparation.R`) to
     *   **Seasonality:** A categorical variable `Season` was created, with *Winter* set as the reference level.
     *   **Log-Transformation:** Pollution data is typically right-skewed. We computed $Log(Y) = \log(PM10 + 1)$ to normalize the distribution.
 
-```{r load_data}
-# Loading the final processed dataset
-# The dataset has been cleaned and saved as an .rds file in the 'data/processed' folder
-df <- readRDS(here("data", "processed", "final_saronno_pm10.rds"))
+![histograms](../img/02_histograms.png)
 
-# Display representative rows using our custom function
-show_key_dates(df)
+# 3. Geographical Context and Wind Dynamics
+Saronno Via Santuario is strategically located in the Northwestern part of the Milan metropolitan area.
+
+![Saronno geographical context](../img/Saronno_context.png)
+
+As shown in figure, Saronno lies at the intersection between the pre-Alpine area (to the North/West) and the high-density urban belt of Milan (to the South/East).
+
+**Hypothesis**: We hypothesize that wind direction is a crucial determinant of local pollution:
+
+1. **Dirty Winds**: Winds blowing from the East/South-East transport pollutants from the highly urbanized Milanese hinterland.
+2. **Clean Winds**: Winds blowing from the North/West bring fresher air from the pre-Alpine regions, facilitating dispersion.
+  
+![alt text](../img/01_wind_boxplot.png)
+
+## 3.1 Correlation Analysis
+
+![correlogram.](../img/04_correlogram.png)
+#4 Model Results (Meteo)
+
+```{r load_model_results, echo=FALSE}
+# Qui carichiamo il modello già calcolato, invece di ricalcolarlo
+m1 <- readRDS(here("output", "models", "m1_meteo.rds"))
+
+# Stampiamo la tabella bella
+tidy(m1) %>% 
+  mutate(
+    p.value = scales::pvalue(p.value),
+    estimate = round(estimate, 4)
+  ) %>% 
+  kable(caption = "Meteorological Model Results") %>% 
+  kable_styling(full_width = F)
 ```
 
-# 3. Exploratory Data Analysis (EDA)
-
-Before modeling, we inspect the distribution of variables and their relationships using visualization tools.
-
-## 3.1 Target Variable Distribution
-We compare the original PM10 distribution with the log-transformed version.
-
-```{r eda_hist, fig.height=4, fig.width=10}
-p1 <- ggplot(df, aes(x=Y)) + 
-  geom_histogram(fill="lightblue", color="white", bins=30) +
-  labs(title="Original PM10 Distribution", x="PM10 (ug/m3)") + theme_minimal()
-
-p2 <- ggplot(df, aes(x=Log_Y)) + 
-  geom_histogram(fill="lightgreen", color="white", bins=30) +
-  labs(title="Log-Transformed PM10", x="Log(PM10)") + theme_minimal()
-
-# Combine plots
-p1 + p2
-```
-
-**Observation:** The original distribution is highly skewed. The log-transformation significantly improves normality, satisfying the assumption for OLS regression. We will use `Log_Y` as our dependent variable.
-```
+  

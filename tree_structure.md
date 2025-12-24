@@ -1,4 +1,6 @@
-.
+
+```
+Agrimonia-Air-Quality-Regression
 ├── Agrimonia-Air-Quality-Regression.Rproj     # RStudio Project file (Sets the root directory for relative paths)
 ├── README.md                   # General documentation, team members, and objective
 ├── tree_structure.txt          # This file: Visual map of the repository structure
@@ -23,3 +25,4 @@
     └── plots/                  # Images exported for presentation
         ├── img00.png
         └── img01.png
+```
