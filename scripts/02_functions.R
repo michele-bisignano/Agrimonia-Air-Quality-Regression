@@ -94,19 +94,42 @@ plot_pm10_histograms <- function(data) {
 # 2. MODEL REPORTING FUNCTIONS
 # ==============================================================================
 
-#' Create a Professional Model Summary Table
-#' THIS WAS THE MISSING FUNCTION!
-print_model_table <- function(model, caption_text = "Regression Results") {
+#' Create a Ranked and Colored Model Table
+#'
+#' - Filters out Intercept.
+#' - Sorts by Estimate.
+#' - COLORS ESTIMATE COLUMN based on Sign:
+#'   RED (>0) = Increases Pollution.
+#'   GREEN (<0) = Decreases Pollution.
+print_model_table <- function(model, caption_text = "Meteorological Model Results") {
   
-  broom::tidy(model) %>%
+  # 1. Estrazione dati
+  tidy_data <- broom::tidy(model) %>%
+    filter(!term %in% c("(Intercept)")) %>%
+    arrange(desc(estimate)) # Ordina dal più positivo al più negativo
+  
+  # 2. Definisci i colori in base al SEGNO dell'Estimate
+  # Se > 0 -> Rosso (D9534F), Se < 0 -> Verde (5CB85C)
+  est_colors <- ifelse(tidy_data$estimate > 0, "#D9534F", "#5CB85C")
+  
+  # 3. Creazione Tabella
+  tidy_data %>%
     mutate(
-      p.value = scales::pvalue(p.value),
+      p_label = scales::pvalue(p.value),
       estimate = round(estimate, 4),
       std.error = round(std.error, 4),
       statistic = round(statistic, 2)
     ) %>%
-    kable(caption = caption_text, align = "c") %>%
-    kable_styling(bootstrap_options = c("striped", "hover", "condensed"), full_width = F)
+    select(term, estimate, std.error, statistic, p_label) %>%
+    kable(
+      caption = caption_text, 
+      align = "c",
+      col.names = c("Variable", "Estimate", "Std. Error", "t-value", "P-Value")
+    ) %>%
+    kable_styling(bootstrap_options = c("striped", "hover"), full_width = F) %>%
+    
+    # 4. Applica i colori alla colonna 2 (Estimate)
+    column_spec(2, color = "white", bold = TRUE, background = est_colors)
 }
 
 #' Compare Multiple Models
