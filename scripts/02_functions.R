@@ -29,36 +29,32 @@ plot_covid_trend <- function(data, title_text = "Pollution vs Covid-19 Restricti
     theme(legend.position = "bottom")
 }
 
-#' Plot Correlation Matrix (Meteo Only)
+#' Plot Correlation Matrix
+#' Excludes non-numeric and specific variables not needed for the plot
 plot_correlations <- function(data) {
   
-  # 1. Selezioniamo solo le colonne numeriche
+  # Select numeric vars and remove specific columns
   numeric_vars <- data %>% 
     select(where(is.numeric)) %>% 
-    # 2. ESCLUSIONI:
-    # - Rimuoviamo ID e Coordinate (inutili)
-    # - Rimuoviamo 'StringencyIndex' (come richiesto)
-    # - Rimuoviamo 'Y' (usiamo solo Log_Y per la correlazione)
-    select(-any_of(c("IDStations", "Altitude", "Longitude", "Latitude", 
-                     "StringencyIndex", "Y")))
+    select(-any_of(c("IDStations", "Altitude", "Longitude", "Latitude", "Y")))
   
-  # 3. Calcolo Correlazione
+  # Calculate Correlation
   M <- cor(numeric_vars, use = "complete.obs")
   
-  # 4. Plot
+  # Plot
   corrplot::corrplot(M, 
                      method = "color", 
                      type = "upper", 
                      order = "hclust", 
-                     addCoef.col = "black", # Mostra i numeri
+                     addCoef.col = "black", # Show numbers
                      tl.col = "black", 
                      tl.srt = 45, 
                      diag = FALSE,
-                     number.cex = 0.8 # Grandezza numeri
+                     number.cex = 0.8 
   )
 }
 
-#' Plot Wind Analysis
+#' Plot Wind Analysis (Boxplot with Median Line)
 plot_wind_analysis <- function(data) {
   data_ord <- data %>%
     mutate(WindDir = factor(WindDir, levels = c("N", "NE", "E", "SE", "S", "SW", "W", "NW"))) %>% 
@@ -77,7 +73,7 @@ plot_wind_analysis <- function(data) {
     theme_minimal()
 }
 
-#' Plot PM10 Histograms
+#' Plot PM10 Histograms (Original vs Log)
 plot_pm10_histograms <- function(data) {
   p1 <- ggplot(data, aes(x=Y)) + 
     geom_histogram(fill="lightblue", color="white", bins=40) +
@@ -90,29 +86,37 @@ plot_pm10_histograms <- function(data) {
   return(p1 + p2)
 }
 
+#' Plot Seasonality Boxplot
+plot_seasonality <- function(data) {
+  ggplot(data, aes(x = Season, y = Log_Y, fill = Season)) +
+    geom_boxplot(alpha = 0.7) +
+    scale_fill_brewer(palette = "Set2") +
+    labs(
+      title = "Seasonal Distribution of PM10",
+      y = "Log(PM10)",
+      x = ""
+    ) +
+    theme_minimal() +
+    theme(legend.position = "none")
+}
+
 # ==============================================================================
 # 2. MODEL REPORTING FUNCTIONS
 # ==============================================================================
 
-#' Create a Ranked and Colored Model Table
-#'
-#' - Filters out Intercept.
-#' - Sorts by Estimate.
-#' - COLORS ESTIMATE COLUMN based on Sign:
-#'   RED (>0) = Increases Pollution.
-#'   GREEN (<0) = Decreases Pollution.
-print_model_table <- function(model, caption_text = "Meteorological Model Results") {
+#' Create a Ranked and Colored Model Summary Table
+#' Sorts by statistical strength (t-value) and colors by estimate sign.
+print_model_table <- function(model, caption_text = "Regression Results") {
   
-  # 1. Estrazione dati
+  # 1. Extract, Filter Intercept, Sort by abs(statistic)
   tidy_data <- broom::tidy(model) %>%
     filter(!term %in% c("(Intercept)")) %>%
-    arrange(desc(estimate)) # Ordina dal più positivo al più negativo
+    arrange(desc(abs(statistic))) 
   
-  # 2. Definisci i colori in base al SEGNO dell'Estimate
-  # Se > 0 -> Rosso (D9534F), Se < 0 -> Verde (5CB85C)
+  # 2. Color logic
   est_colors <- ifelse(tidy_data$estimate > 0, "#D9534F", "#5CB85C")
   
-  # 3. Creazione Tabella
+  # 3. Create Table
   tidy_data %>%
     mutate(
       p_label = scales::pvalue(p.value),
@@ -127,27 +131,7 @@ print_model_table <- function(model, caption_text = "Meteorological Model Result
       col.names = c("Variable", "Estimate", "Std. Error", "t-value", "P-Value")
     ) %>%
     kable_styling(bootstrap_options = c("striped", "hover"), full_width = F) %>%
-    
-    # 4. Applica i colori alla colonna 2 (Estimate)
     column_spec(2, color = "white", bold = TRUE, background = est_colors)
-}
-
-#' Compare Multiple Models
-compare_models <- function(model_list) {
-  comparison <- map_dfr(model_list, function(m) {
-    broom::glance(m) %>% select(adj.r.squared, AIC, BIC, sigma)
-  }, .id = "Model_Name")
-  
-  comparison %>%
-    mutate(
-      adj.r.squared = round(adj.r.squared, 3),
-      AIC = round(AIC, 1),
-      BIC = round(BIC, 1),
-      sigma = round(sigma, 3)
-    ) %>%
-    rename("Adj R2" = adj.r.squared, "Resid. Std. Error" = sigma) %>%
-    kable(caption = "Model Comparison: Fit Metrics") %>%
-    kable_styling(bootstrap_options = c("striped", "hover"), full_width = F)
 }
 
 # ==============================================================================
