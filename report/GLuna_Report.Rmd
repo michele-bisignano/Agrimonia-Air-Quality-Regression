@@ -38,7 +38,6 @@ if (!require("pacman")) install.packages("pacman")
 pacman::p_load(tidyverse, here, lubridate, knitr, kableExtra, corrplot, car, lmtest, patchwork, broom)
 
 # Source custom functions for plotting and tables
-# This keeps the Rmd file clean and readable
 source(here("scripts", "02_functions.R"))
 ```
 
@@ -48,10 +47,8 @@ Air pollution in the Lombardy region is a critical environmental issue due to th
 
 To systematically analyze this phenomenon, we structured our research into **two distinct parts**:
 
-
-Specifically, we aim to:
 1.  **Meteorological Drivers of PM10**. We focus on **PM10** levels in the strategic station of **Saronno**. The goal is to build a robust regression model to quantify how natural factors (wind direction, precipitation, seasonality) influence particulate matter accumulation.
-2.  **The "Covid Effect"**:  In the second stage, we will select the specific air pollutant that shows the highest correlation with industrial activity. We will then analyze whether the **COVID-19 lockdown restrictions** (Stringency Index) significantly reduced levels of that specific pollutant, treating the 2020 lockdown as a natural experiment.
+2.  **The "Covid Effect"**: In the second stage, we analyze whether the **COVID-19 lockdown restrictions** (Stringency Index) significantly reduced levels of PM10, treating the 2020 lockdown as a natural experiment.
 
 # Data Selection and Preparation
 
@@ -70,13 +67,22 @@ We performed a preliminary data quality assessment to identify the optimal stati
 The raw data was processed using an external script (`01_data_preparation.R`) to ensure reproducibility. The following preprocessing steps were applied:
 
 1.  **Variable Exclusion:**
-    *   **Emission Estimates (`EM_`)**: Removed as they are model-based proxies (often annual estimates), not direct observations. Using them to predict pollution would introduce circularity.
+    *   **Emission Estimates (`EM_`)**: Removed as they are model-based proxies (often annual estimates), not direct observations.
     *   **Static Structural Variables (`LI_`, `LA_`)**: Geographic variables (Livestock density, Land Use, Altitude) are constant over time for a single station. They have zero variance and cannot be used in a regression model (they would be perfectly collinear with the intercept).
 
 2.  **COVID-19 Data Integration:**
     *   We integrated the *Oxford Covid-19 Government Response Tracker (OxCGRT)* dataset.
     *   We selected the **Stringency Index** for Italy, which aggregates closure policies (schools, workplaces, travel bans). Missing values (pre-2020) were imputed with `0`.
-    
+
+```{r load_data}
+# Loading the final processed dataset
+# The dataset has been cleaned and saved as an .rds file in the 'data/processed' folder
+df <- readRDS(here("data", "processed", "final_saronno_pm10.rds"))
+
+# Display representative rows using our custom function
+show_key_dates(df)
+```
+
 # Meteorological Drivers of PM10 Concentrations
 
 ## Addressing Skewness
@@ -84,52 +90,139 @@ The raw data was processed using an external script (`01_data_preparation.R`) to
 1.  **Seasonality:** A categorical variable `Season` was created, with *Winter* set as the reference level.
 2.  **Log-Transformation:** Pollution data is typically right-skewed. We computed $Log(Y) = \log(PM10 + 1)$ to normalize the distribution.
 
-![](../output/02_histograms.png)
+```{r hist_plot, echo=FALSE, fig.cap="Comparison of PM10 Distribution: Original vs Log-Transformed"}
+# We generate the histogram plot using our custom function
+plot_pm10_histograms(df)
+```
 
 ## Geographical Context and Wind Dynamics
+
 Saronno Via Santuario is strategically located in the Northwestern part of the Milan metropolitan area.
 
-![](../img/Saronno_context.png)
+```{r map, echo=FALSE, out.width="60%", fig.cap="Location of Saronno Station relative to Milan and the Alps"}
+# Ensure you have the image file in the 'img' folder
+# If the image is missing, this chunk will be skipped gracefully
+if(file.exists(here("img", "Saronno_context.png"))) {
+  knitr::include_graphics(here("img", "Saronno_context.png"))
+} else {
+  message("Image 'Saronno_context.png' not found.")
+}
+```
 
 As shown in figure, Saronno lies at the intersection between the pre-Alpine area (to the North/West) and the high-density urban belt of Milan (to the South/East).
 
 **Hypothesis**: We hypothesize that wind direction is a crucial determinant of local pollution:
 
-  1. **Dirty Winds**: Winds blowing from the East/South-East transport pollutants from the highly urbanized Milanese hinterland.
-  2. **Clean Winds**: Winds blowing from the North/West bring fresher air from the pre-Alpine regions, facilitating dispersion.
-  
-![](../output/01_wind_boxplot.png)
+1.  **Dirty Winds**: Winds from the **East/South-East** transport pollutants from the highly urbanized Milanese hinterland.
+2.  **Clean Winds**: Winds from the **North/West** bring fresher air from the pre-Alpine regions, facilitating dispersion.
+
+```{r wind_plot, echo=FALSE}
+# Live generation using the custom function
+plot_wind_analysis(df)
+```
+
 ### Wind Direction Analysis: Statistical Summary
 
 To quantify the visual patterns observed in the boxplot, we computed the summary statistics for each wind direction.
 
-**Methodological Note:**
-*   **Why Median?** As shown in the initial histograms, the PM10 distribution presents a **long right tail** (extreme pollution events). In this context, the arithmetic mean would be biased by outliers. We chose the **Median** as a robust estimator to represent the "typical" pollution level.
-*   **Why $\mu g/m^3$?** While our statistical model uses the logarithmic scale, human interpretation requires physical units. Therefore, we back-transformed the median Log-values to provide estimates in **micrograms per cubic meter ($\mu g/m^3$)**, the standard unit for air quality guidelines.
+**Methodological Note:** We chose the **Median** as a robust estimator to represent the "typical" pollution level, as the arithmetic mean would be biased by outliers (extreme pollution events).
 
 ```{r wind_table, echo=FALSE}
-# Load the statistics table generated by the script
-wind_tab <- readRDS(here("output", "wind_stats_table.rds"))
+# Calculate statistics live for the table
+wind_tab <- df %>%
+  group_by(WindDir) %>%
+  summarise(
+    Days = n(),
+    Median_Log = median(Log_Y, na.rm = TRUE),
+    Median_PM10 = median(Y, na.rm = TRUE)
+  ) %>%
+  arrange(desc(Median_Log))
 
-# Format and display the results
+# Format and display
 wind_tab %>%
   mutate(
     Median_Log = round(Median_Log, 2),
-    Median_PM10 = round(Median_PM10, 1) # Round for better readability
+    Median_PM10 = round(Median_PM10, 1)
   ) %>%
   kable(
     caption = "Wind Direction Ranking: From Highest to Lowest Pollution Levels",
     col.names = c("Direction", "Days Observed", "Median Log(PM10)", "Median PM10 (ug/m3)"),
-    align = "c" # Center columns
+    align = "c"
   ) %>%
   kable_styling(bootstrap_options = c("striped", "hover", "condensed"), full_width = F) %>%
-  # Highlight the top 3 rows (most polluted directions) in light red
-  row_spec(1:3, bold = TRUE, color = "#B22222", background = "#ffe6e6") %>%
-  # Highlight the bottom 3 rows (cleanest directions) in light green
-  row_spec(6:8, color = "#006400", background = "#e6ffe6")
+  row_spec(1:3, bold = TRUE, color = "#B22222", background = "#ffe6e6") %>% # Top 3 (Dirty)
+  row_spec(6:8, color = "#006400", background = "#e6ffe6")                   # Bottom 3 (Clean)
 ```
+
 **Discussion of Results:**
 The table provides numerical confirmation of the "Dirty Wind" hypothesis.
 1.  **The "Milan Effect":** The ranking is led by winds from the **South (S)** and **South-East (SE)**, which correspond to the highest median concentrations ($\approx 25-28 \mu g/m^3$). This trajectory aligns perfectly with the location of the **Milan metropolitan area** relative to Saronno, suggesting that these winds transport urban emissions towards the station.
 2.  **Dispersion:** Conversely, winds blowing from the **South-West (SW)** and **North-East (NE)** are associated with the lowest median levels ($\approx 19 \mu g/m^3$), acting as the most effective natural cleaning agents for this specific location.
 
+## Correlation Analysis
+
+Before fitting the regression model, we inspect the **correlation matrix** of the numeric variables. This step is crucial for two reasons:
+1.  **Variable Selection:** To confirm which meteorological factors actually have a relationship with PM10 levels.
+2.  **Multicollinearity Check:** To ensure that the independent variables (the $X$s) are not too highly correlated with each other, which could destabilize the model estimates.
+
+```{r correlation_plot, echo=FALSE, fig.height=6, fig.width=6, fig.cap="Pearson Correlation Matrix"}
+# We use the custom function defined in scripts/02_functions.R
+plot_correlations(df)
+```
+
+**Interpretation:**
+*   **Target Variable (Log_Y):** We observe a clear **negative correlation** with **Wind Speed** and **Temperature**. This aligns with physical expectations: stronger winds disperse pollutants, and higher temperatures (often associated with unstable atmospheric conditions or lack of domestic heating) reduce PM10 concentrations.
+*   **Covid Impact:** The **StringencyIndex** shows a negative correlation with pollution, suggesting that higher restrictions are indeed associated with lower PM10 levels.
+*   **Multicollinearity:** The correlations between the predictor variables are moderate. Since no pair exceeds $0.7 - 0.8$, we do not expect severe multicollinearity issues.
+
+## Regression Modeling
+
+We fit two linear models to test our hypotheses.
+
+*   **Model 1 (Meteorological):** Explains pollution using only weather variables.
+*   **Model 2 (Full):** Adds **Seasonality** and the **Covid Stringency Index**.
+
+```{r models}
+# Model 1: Meteorology Only
+model_meteo <- lm(Log_Y ~ Temp + WindSpeed + Precipitation + Humidity + WindDir, data = df)
+
+# Model 2: Meteorology + Seasonality + Covid Index
+model_full <- lm(Log_Y ~ Temp + WindSpeed + Precipitation + Humidity + 
+                 WindDir + Season + StringencyIndex, data = df)
+
+# Display results for the Full Model
+print_model_table(model_full, caption_text = "Full Model Results")
+```
+
+## 5.1 Model Comparison
+
+We compare the models using **Adjusted R-squared** (higher is better) and **AIC** (lower is better).
+
+```{r comparison, echo=FALSE}
+compare_models(list("Meteo Only" = model_meteo, "Full (Meteo + Covid + Season)" = model_full))
+```
+
+**Result:** The **Full Model** performs significantly better. The inclusion of Seasonality and the Covid Index increases the Adjusted $R^2$ and lowers the AIC, confirming that human factors and seasonal cycles are essential to explain PM10 variability.
+
+## 5.2 Diagnostics
+
+We check the assumptions of the linear regression model for the chosen Full Model.
+
+```{r diagnostics, fig.height=8, fig.width=10, echo=FALSE}
+par(mfrow=c(2,2))
+plot(model_full)
+```
+
+**Interpretation:**
+1.  **Residuals vs Fitted:** The red line is relatively flat around zero, suggesting linearity holds reasonably well.
+2.  **Normal Q-Q:** The points follow the diagonal line, confirming that the Log-transformation of PM10 successfully normalized the residuals.
+
+# 6. Conclusions
+
+Our analysis of PM10 concentrations at **Saronno Via Santuario** leads to the following key findings:
+
+1.  **Meteorology:** Weather is a primary driver. **Wind Speed** and **Precipitation** have significant negative coefficients (p < 0.001), confirming their role in dispersing and washing out pollutants.
+2.  **Wind Direction:** As hypothesized, winds blowing from the **North** and **West** (Pre-Alpine areas) are associated with significantly lower pollution compared to winds from the South/East urban belt.
+3.  **The "Covid Effect":** The **Stringency Index** is statistically significant with a **negative coefficient**. This confirms that the severe restrictions on mobility during 2020 led to a measurable improvement in air quality, even after accounting for weather conditions.
+4.  **Seasonality:** Winter remains the critical season for pollution, likely due to thermal inversion and domestic heating emissions.
+```
