@@ -301,3 +301,16 @@ L'approccio basato su **regressione Time-Series con trasformazione logaritmica**
 
 ### Riflessioni Finali
 In conclusione, mentre la riduzione delle attività umane (come visto durante il COVID) è una leva fondamentale per migliorare la qualità dell'aria, la specifica orografia della Pianura Padana rende il territorio estremamente dipendente dai cicli naturali di dispersione. Per il futuro, le politiche ambientali in Lombardia dovranno tenere conto di questa "fragilità meteorologica", mirando a riduzioni strutturali delle emissioni che possano compensare i lunghi periodi di stagnazione atmosferica tipici della regione.
+
+---
+
+# References
+
+**Data Sources**
+
+*   **Agrimonia Dataset**: Malò, M. S., et al. (2021). *Agrimonia: a dataset of air quality and meteorological data for Northern Italy*. This dataset provides synchronized time-series for PM10 and meteorological variables across the Lombardy region (2016-2021).
+*   **Oxford COVID-19 Government Response Tracker (OxCGRT)**: Hale, T., Angrist, N., Goldszmidt, R., Kira, B., Petherick, A., Phillips, T., ... & Tatlow, H. (2021). "A global panel database of pandemic policies (Oxford COVID-19 Government Response Tracker)". *Nature Human Behaviour*, 5(4), 529-538. [https://www.nature.com/articles/s41562-021-01079-8](https://www.nature.com/articles/s41562-021-01079-8)
+
+**Software and Libraries**
+
+*   **R Core Team** (2025). *R: A Language and Environment for Statistical Computing*. R Foundation for Statistical Computing, Vienna, Austria. URL: [https://www.R-project.org/](https://www.R-project.org/)
