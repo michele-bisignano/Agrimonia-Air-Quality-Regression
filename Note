@@ -35,6 +35,76 @@ Perché il prof le vieta: Se usate queste variabili per predire l'inquinamento, 
 (XX) sull'inquinamento (YY), non testare la bontà degli inventari delle emissioni.
 
 
-2
+In riferimento alla prima mappa su moodle (scelta modello)
+
+Basandoci sulla mappa di flusso che hai inviato e sull'analisi che abbiamo fatto finora, il modello utilizzato nel tuo progetto segue esattamente il percorso della variabile Continua.
+Ecco i passaggi della mappa che hai percorso:
+Processo della variabile risposta: Hai analizzato la concentrazione di PM10 che è una variabile di tipo Continuo.
+Diagnostica residui su modello lineare: Hai osservato che i dati originali del PM10 presentavano una forte asimmetria (erano right-skewed), il che portava a una Non normalità dei residui e a una potenziale Eteroschedasticità (la variabilità aumenta all'aumentare della concentrazione).
+Scelta del modello:
+Hai seguito il percorso della "trasformazione su Y che garantisca normalità".
+Oppure, come indicato nel primo box verde a sinistra, hai optato per la "trasformazione logaritmica di Y" per correggere l'eteroschedasticità e la non-linearità.
+In sintesi, secondo la tua mappa, il modello è:
+Un Modello Lineare (LM) con trasformazione logaritmica della variabile risposta Y
+Perché questa scelta è corretta secondo lo schema?
+Contro la Non-normalità: La trasformazione Log(Y) ha reso la distribuzione del PM10 simile a una normale (come hai mostrato nei tuoi istogrammi e nel Q-Q plot).
+Contro l'Eteroschedasticità: Inquinanti come il PM10 hanno una varianza che cresce con la media; il logaritmo stabilizza questa varianza, rendendo il modello lineare classico (OLS) valido.
+Quindi, se il professore ti chiede "Dove si colloca il tuo modello in questa mappa?", la risposta è:
+"Abbiamo una variabile continua. Poiché la diagnostica iniziale mostrava non-normalità e eteroschedasticità, abbiamo applicato una trasformazione logaritmica su Y per rientrare nei presupposti del modello lineare."
 
 
+In riferimento alla seconda mappa su moodle
+
+Questa mappa rappresenta il processo di selezione dei predittori (le variabili X) per rendere il modello accurato e parsimonioso. Se il professore ti chiede come si collega al vostro progetto, ecco la risposta strutturata punto per punto secondo lo schema:
+1) Effetti di Interazione
+Cosa rispondere: "In questa fase abbiamo privilegiato i Main Effects (effetti principali) per garantire la massima interpretabilità del modello, dato che l'obiettivo era quantificare direttamente l'impatto di vento, pioggia e restrizioni COVID."
+Nota per il futuro: Potresti dire che un'evoluzione del modello potrebbe includere l'interazione tra Direzione del Vento e Velocità del Vento (per vedere se i venti da Sud sono "più sporchi" solo quando sono deboli).
+2) Multicollinearità (Il punto forte del vostro lavoro)
+Cosa rispondere: "Abbiamo seguito questo step rigorosamente in due modi:
+Heatmap (Matrice di Correlazione): Prima di fittare il modello, abbiamo controllato che non ci fossero variabili troppo correlate (tutte sotto la soglia critica di 0.7).
+VIF (Variance Inflation Factor): Dopo il modello, abbiamo calcolato il VIF per ogni variabile. Poiché tutti i valori sono risultati bassi (vicini a 1 o comunque < 5), abbiamo confermato che non c'è distorsione da multicollinearità."
+3) Significatività e Bontà di Adattamento
+3a (In prima battuta): "Abbiamo utilizzato i P-values e i t-values per identificare quali variabili fossero davvero determinanti. Ad esempio, abbiamo visto che Precipitazioni e Vento hanno i t-value più alti (segnale più forte). Abbiamo usato variabili dummy per la stagionalità, trattandole come categoriali (con l'Inverno come riferimento)."
+3b (Per maggiore rigore): "La scelta delle variabili è stata guidata dalla fisica atmosferica e dall'obiettivo di ricerca (COVID). Non abbiamo usato algoritmi Stepwise automatici perché volevamo mantenere un controllo teorico sulle variabili inserite (approccio theory-driven)."
+4) Tecniche Avanzate
+Cosa rispondere: "Data la natura del dataset (poche variabili ma molto significative), il modello OLS (Ordinary Least Squares) è risultato già molto robusto.
+Non abbiamo usato la Regolarizzazione (LASSO/RIDGE) perché avevamo un numero limitato di predittori (non avevamo il problema di avere troppe variabili rispetto alle osservazioni).
+Per quanto riguarda la Cross Validation, ci siamo concentrati sulla diagnostica dei residui (Q-Q plot e residui vs fitted) per confermare la capacità predittiva e la validità del modello su tutta la serie storica."
+In sintesi, se ti chiede "Qual è stata la vostra strategia di selezione?":
+"La nostra strategia è stata mista: abbiamo usato la teoria (fisica dell'atmosfera) per scegliere i predittori meteorologici, e abbiamo usato la statistica (Heatmap e VIF) per assicurarci che queste variabili non fossero ridondanti tra loro. Infine, abbiamo validato tutto tramite i P-values per confermare che ogni elemento inserito (incluso lo Stringency Index del COVID) desse un contributo reale alla spiegazione del PM10."
+
+
+
+Per quanto riguarda le linee guida date 
+
+Sì, abbiamo coperto praticamente tutti i punti richiesti dalla guida di Alice Giampino. Anzi, la struttura che abbiamo dato al report segue quasi perfettamente questo schema accademico.
+Ecco il check-list di confronto tra i punti della slide e il tuo lavoro:
+1. Descrizione del problema e dei dati (Fatto ✅)
+Problema: Hai descritto l'inquinamento in Lombardia e l'orografia della Pianura Padana (Sezione 1).
+Dati: Hai specificato il dataset (Agrimonia), il periodo (2016-2021) e la stazione scelta (Saronno) spiegando il perché della selezione (Sezione 2).
+2. EDA - Exploratory Data Analysis (Fatto ✅)
+Boxplot: Li abbiamo usati per l'analisi del vento e della stagionalità.
+Correlation Plot: Hai inserito la heatmap delle correlazioni per lo studio dei predittori.
+Tables: Abbiamo inserito le tabelle descrittive del vento e l'anteprima del dataset (show_key_dates).
+Istogrammi: Fondamentali per mostrare la distribuzione del PM10 prima e dopo il logaritmo.
+3. Data Engineering (Fatto ✅)
+Abbiamo creato la variabile Log_Y (trasformazione logaritmica).
+Abbiamo creato la variabile Season (stagionalità) partendo dalle date.
+Abbiamo integrato dati esterni (Stringency Index) per l'analisi COVID.
+4. Missing Imputation e Outlier Detection (Fatto ✅)
+Missing: Hai spiegato nella Sezione 2.1 come hai scelto Saronno basandoti sulla classifica dei missing values.
+Outliers: Nel report abbiamo specificato che è stata usata la Mediana (stima robusta) proprio per evitare che gli outlier influenzassero l'analisi del vento. Inoltre, la trasformazione logaritmica serve proprio a ridurre l'impatto dei valori estremi.
+5. Variable Selection (Fatto ✅)
+Hai giustificato l'esclusione delle variabili EM_ (perché stimate) e LI_/LA_ (perché statiche).
+Abbiamo usato il VIF (punto 5.3 del report) per giustificare statisticamente la scelta delle variabili finali, evitando ridondanze.
+6. Interpretazione dei risultati e conclusioni (Fatto ✅)
+Abbiamo dedicato la Sezione 5 all'interpretazione dell'effetto COVID e la Sezione 6 alle conclusioni generali, rispondendo alla domanda iniziale: "Cosa guida il PM10? Il meteo o l'uomo?".
+7. Bibliografia (Da rifinire ⚠️)
+Questo è l'unico punto che non abbiamo scritto esplicitamente nel testo "Markdown", ma che hai citato nel corpo del testo. Per essere perfetto secondo la slide, dovresti aggiungere in fondo al report un piccolo paragrafo così:
+References
+Agrimonia Dataset: Pulignano et al. (2016-2021) per i dati sulla qualità dell'aria in Lombardia.
+Oxford COVID-19 Government Response Tracker (OxCGRT): Per lo Stringency Index dell'Italia.
+R Core Team: Per le analisi statistiche effettuate con R.
+Cosa dire se il prof ti chiede "Perché questo report è fatto bene?"
+Puoi rispondere:
+"Abbiamo seguito un flusso logico che parte dall'analisi esplorativa (EDA) per capire la natura del PM10, siamo passati per il Data Engineering per normalizzare i dati e infine abbiamo usato la selezione delle variabili tramite VIF per costruire un modello solido che isolasse l'impatto del lockdown dai fattori naturali."
