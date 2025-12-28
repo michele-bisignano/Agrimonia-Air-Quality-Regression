@@ -178,7 +178,7 @@ To strictly isolate the physical impact of weather on pollution, we fit a linear
 
 To ensure complete transparency and robustness of our findings, we report four key metrics for each predictor in the regression table:
 
-1.  **Estimate ($\hat{\beta}$):** Represents the **magnitude and direction** of the physical effect.
+1.  **Estimate ($\hat{\beta}$):** Represents the **magnitude and direction** of the physical effect. Since the target is log-transformed, these values indicate **percentage changes** rather than absolute units (e.g., $\beta = -0.26$ implies a $\approx 23\%$ reduction in PM10).
 2.  **Std. Error:** Measures the uncertainty or "noise" associated with the calculation.
 3.  **Pr(>|t|) (p-value):** Indicates the statistical significance.It indicates the probability that results are due to chance.
 4.  **t-value:** This is the most critical metric for assessing the strength of the relationship.
@@ -215,10 +215,11 @@ par(mfrow=c(2,2))
 plot(model_meteo)
 ```
 
-**Interpretation**:
+**Interpretation of Diagnostics:**
 
-1.  Residuals vs Fitted: The red line is relatively flat, indicating that the linear relationship is appropriate.
-2.  Normal Q-Q: The points lie close to the diagonal line, confirming that the Log-transformation of PM10 was effective in normalizing the errors.
+*   **Linearity & Homoscedasticity:** The *Residuals vs Fitted* and *Scale-Location* plots show a relatively flat red trend line and a random distribution of residuals around zero. This confirms that the linear functional form is appropriate and that the error variance is constant (homoscedasticity) across the range of values.
+*   **Normality of Residuals:** The *Normal Q-Q plot* demonstrates that the residuals align closely with the theoretical diagonal. This provides strong empirical evidence that the **Log-transformation of PM10** effectively normalized the target variable, satisfying the Gaussian assumption of the OLS estimator required for valid hypothesis testing.
+*   **Influential Observations:** The *Residuals vs Leverage* plot reveals that all observations fall well within the thresholds of **Cook’s Distance**. This indicates that our model coefficients are robust and not biased by individual extreme outliers.
 
 
 # Conclusions

@@ -108,15 +108,24 @@ plot_seasonality <- function(data) {
 #' Sorts by statistical strength (t-value) and colors by estimate sign.
 print_model_table <- function(model, caption_text = "Regression Results") {
   
-  # 1. Extract, Filter Intercept, Sort by abs(statistic)
+  # 1. Extract coefficients and calculate the percentage effect
   tidy_data <- broom::tidy(model) %>%
     filter(!term %in% c("(Intercept)")) %>%
-    arrange(desc(abs(statistic))) 
+    mutate(
+      pct_effect = (exp(estimate) - 1) * 100,
+      pct_label = sprintf("%+.1f%%", pct_effect)
+    ) %>%
+    # 2. Sort from Highest Effect (most polluting) to Lowest Effect (most cleaning)
+    arrange(desc(pct_effect))
   
-  # 2. Color logic
-  est_colors <- ifelse(tidy_data$estimate > 0, "#D9534F", "#5CB85C")
+  # 3. Create a color gradient for the percentage column
+  # We use a Red -> White -> Green palette (Red = Positive/Bad, Green = Negative/Good)
+  # "RdYlGn" is a standard palette, we reverse it so High=Red, Low=Green
+  col_palette <- colorRampPalette(c("#5CB85C", "#F0F0F0", "#D9534F"))(nrow(tidy_data))
+  # We map the colors to the sorted values
+  val_colors <- rev(col_palette) 
   
-  # 3. Create Table
+  # 4. Generate the table
   tidy_data %>%
     mutate(
       p_label = scales::pvalue(p.value),
@@ -124,14 +133,15 @@ print_model_table <- function(model, caption_text = "Regression Results") {
       std.error = round(std.error, 4),
       statistic = round(statistic, 2)
     ) %>%
-    select(term, estimate, std.error, statistic, p_label) %>%
+    select(term, estimate, pct_label, std.error, statistic, p_label) %>%
     kable(
       caption = caption_text, 
       align = "c",
-      col.names = c("Variable", "Estimate", "Std. Error", "t-value", "P-Value")
+      col.names = c("Variable", "Estimate", "Effect (%)", "Std. Error", "t-value", "P-Value")
     ) %>%
     kable_styling(bootstrap_options = c("striped", "hover"), full_width = F) %>%
-    column_spec(2, color = "white", bold = TRUE, background = est_colors)
+    # Apply the gradient ONLY to the 3rd column (Effect %)
+    column_spec(3, color = "white", bold = TRUE, background = val_colors)
 }
 
 # ==============================================================================
