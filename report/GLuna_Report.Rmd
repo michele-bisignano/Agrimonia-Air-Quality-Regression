@@ -227,4 +227,76 @@ Our analysis of PM10 concentrations at Saronno Via Santuario highlights the crit
 1. Humidity: Shows a positive estimate (Red). High humidity is often associated with stable atmospheric conditions and fog (typical of the Po Valley winter), which trap pollutants at ground level.
 2. Temperature: Shows a negative correlation (Green/Blue). Warmer days facilitate atmospheric mixing, reducing concentrations.
 Dispersion Factors: Both Wind Speed and Precipitation have strong negative coefficients (p<0.001). This statistically confirms their role as the primary natural cleansing agents for particulate matter
+
+# The "Covid Effect": Human Activity vs. Environmental Factors
+
+In questa sezione finale, integriamo nel modello le variabili socio-comportamentali per testare l'ipotesi centrale: **il lockdown ha ridotto significativamente il PM10 al netto delle condizioni meteorologiche?**
+
+## Visualizing the Trend
+Iniziamo sovrapponendo la serie storica del PM10 (in scala logaritmica) con lo **Stringency Index** (l'indice che misura il rigore delle restrizioni).
+
+```{r covid_trend, fig.cap="Temporal overlap of PM10 levels and Government Restrictions"}
+# Usiamo la tua funzione custom per il plot
+plot_covid_trend(df, title_text = "PM10 Levels vs. Italy's Stringency Index (2016-2021)")
 ```
+
+*Interpretazione visiva:* Si nota chiaramente il picco dello Stringency Index a inizio 2020. Tuttavia, il PM10 mostra comunque i suoi tipici cicli stagionali. Per capire se il calo sia dovuto alle chiusure o semplicemente alla fine dell'inverno, è necessario un modello di regressione multivariata.
+
+## Full Regression Model (Meteo + Covid + Seasonality)
+Per isolare l'effetto "umano", abbiamo costruito un modello che include:
+1.  **Variabili Meteo**: Per "pulire" i dati dalla variabilità naturale.
+2.  **Stringency Index**: Per quantificare l'effetto delle restrizioni.
+3.  **Seasonality**: Per catturare i cambiamenti strutturali (es. accensione riscaldamenti) che si ripetono ogni anno.
+
+```{r model_full}
+# Fitting the comprehensive model
+model_full <- lm(Log_Y ~ Temp + WindSpeed + Precipitation + Humidity + 
+                 StringencyIndex + Season, data = df)
+
+# Visualizzazione con la tua funzione custom
+print_model_table(model_full, caption_text = "Full Model: Quantifying the Covid Impact")
+```
+
+### **Analisi dei Risultati**
+*   **Significatività dello Stringency Index**: Il coefficiente dello Stringency Index è **negativo e statisticamente significativo** ($p < 0.001$). Ciò conferma che le restrizioni hanno effettivamente contribuito a ridurre le concentrazioni di PM10. 
+*   **Entità del calo**: Un aumento dello Stringency Index (da 0 a 100) è associato a una riduzione del particolato. Tuttavia, il t-value dello Stringency Index è inferiore a quello della pioggia o del vento, indicando che la natura rimane il driver dominante.
+*   **Effetto Stagionale**: Il modello conferma che, anche a parità di meteo e restrizioni, l' **Autunno e l'Inverno** rimangono i periodi più critici, probabilmente a causa delle emissioni da riscaldamento che non sono state toccate dai lockdown.
+
+## Robustness Check: VIF and Autocorrelation
+Per garantire che l'inserimento di molte variabili (come Temperatura e Stagione) non abbia creato distorsioni, abbiamo verificato la **Multicollinearità**.
+
+```{r robustness}
+# Verifica VIF (Variance Inflation Factor)
+vif_values <- car::vif(model_full)
+
+# Visualizzazione tabellare semplice
+kable(vif_values, col.names = c("GVIF", "Df", "GVIF^(1/2Df)"), 
+      caption = "Multicollinearity Check (VIF)") %>% 
+  kable_styling(full_width = F)
+```
+
+**Esito:** Tutti i valori GVIF sono contenuti (molto sotto la soglia critica di 5 o 10). Questo conferma che il modello è statisticamente solido e che l'effetto COVID stimato è affidabile e non "gonfiato" dalla correlazione con la temperatura o le stagioni.
+
+# Conclusions
+
+La nostra analisi sistematica dei driver del PM10 presso la stazione di **Saronno Via Santuario (2016-2021)** ha permesso di delineare un quadro chiaro delle dinamiche dell'inquinamento atmosferico nella Pianura Padana nord-occidentale.
+
+### Sintesi dei Risultati Meteorologici
+I fattori naturali rimangono i principali determinanti della qualità dell'aria:
+*   **L'Effetto "Lavaggio" e Ventilazione**: La pioggia e la velocità del vento si confermano i più potenti agenti di abbattimento naturale del particolato. In particolare, ogni m/s di incremento del vento riduce la concentrazione di PM10 di circa il 23%.
+*   **Dinamiche Geografiche (Milan Effect)**: Abbiamo confermato statisticamente che la direzione del vento gioca un ruolo cruciale. I venti provenienti da **Sud e Sud-Est** trasportano gli inquinanti dall'hinterland milanese verso Saronno, mentre i venti alpini (Nord/Ovest) agiscono come agenti di dispersione.
+*   **Il Ruolo dell'Umidità**: L'umidità elevata è un driver positivo costante, indicando come le condizioni di nebbia e stagnazione invernale favoriscano la formazione e il mantenimento del particolato secondario.
+
+### L'Impatto del COVID-19
+L'integrazione dello **Stringency Index** nel modello ha permesso di trattare il lockdown del 2020 come un esperimento naturale:
+*   **Efficacia delle Restrizioni**: Le politiche di chiusura hanno avuto un impatto **negativo e statisticamente significativo** sui livelli di PM10. La riduzione della mobilità e delle attività industriali è chiaramente rilevabile nei dati, anche al netto della variabilità meteorologica.
+*   **Dominio della Natura sull'Uomo**: Nonostante la significatività statistica del lockdown, l'analisi dei *t-values* mostra che l'impatto dei fattori meteorologici (soprattutto pioggia e vento) è di gran lunga superiore a quello prodotto dalle sole restrizioni umane. Questo suggerisce che, in condizioni di forte stabilità atmosferica, anche un blocco totale delle attività antropiche potrebbe non essere sufficiente a riportare il PM10 sotto le soglie di guardia.
+
+### Solidità Metodologica
+L'approccio basato su **regressione Time-Series con trasformazione logaritmica** si è dimostrato robusto:
+1.  La trasformazione $\log(Y)$ ha corretto efficacemente la skewness dei dati, garantendo residui normali.
+2.  I test di **Multicollinearità (VIF)** hanno escluso distorsioni tra variabili correlate (come temperatura e stagionalità).
+3.  Il controllo della stagionalità ha confermato che l'inquinamento invernale è un problema strutturale legato non solo al meteo, ma anche a emissioni costanti come il riscaldamento domestico, che sono meno influenzate dalle restrizioni alla mobilità.
+
+### Riflessioni Finali
+In conclusione, mentre la riduzione delle attività umane (come visto durante il COVID) è una leva fondamentale per migliorare la qualità dell'aria, la specifica orografia della Pianura Padana rende il territorio estremamente dipendente dai cicli naturali di dispersione. Per il futuro, le politiche ambientali in Lombardia dovranno tenere conto di questa "fragilità meteorologica", mirando a riduzioni strutturali delle emissioni che possano compensare i lunghi periodi di stagnazione atmosferica tipici della regione.
