@@ -206,6 +206,16 @@ All meteorological variables included in the model are **highly statistically si
 3.  **Humidity ($\beta \approx +0.05$):** Shows a positive correlation. High humidity likely facilitates the formation of secondary particulate matter and traps pollutants near the ground.
 4.  **Temperature ($\beta \approx -0.02$):** Shows a negative relationship (warmer days have less pollution). This captures the inverse of the "winter effect": cold temperatures (typical of inversion layers) are associated with higher PM10 levels.
 
+```{r model_performance}
+# Estraiamo l'R-quadrato
+r_sq <- summary(model_meteo)$r.squared
+adj_r_sq <- summary(model_meteo)$adj.r.squared
+```
+
+**Model Performance:**
+The meteorological model explains **`r round(r_sq * 100, 1)`%** of the total variance in PM10 levels (Multiple $R^2$ = `r round(r_sq, 3)`). This indicates a strong fit, considering the high daily variability of atmospheric data.
+
+
 ### Diagnostics
 
 We check the validity of the model assumptions.
