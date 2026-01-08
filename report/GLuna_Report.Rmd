@@ -52,7 +52,7 @@ To systematically analyze this phenomenon, we structured our research into **two
 
 # Data Selection and Preparation
 
-The analysis is based on the *Agrimonia* dataset (2016-2021). To ensure robust statistical inference, we adopted a **Time-Series approach**, fixing the spatial dimension to focus exclusively on temporal dynamics.
+The analysis is based on the **Agrimonia dataset (2016-2021)**. We focus on a single geographical location over time, treating the data as a **time-series dataset**. To analyze the relationships between factors and PM10, we apply a multiple linear regression model, which allows us to quantify how daily variations in meteorology and policies influence the temporal dynamics of pollutants.
 
 ## Station Selection Strategy
 
@@ -172,7 +172,11 @@ Prior to model fitting, we examine the **correlation matrix** of the numerical v
 
 ### Regression Modeling: Meteorological Drivers
 
-To strictly isolate the physical impact of weather on pollution, we fit a linear model using only quantitative meteorological variables. We exclude seasonality and human factors (Covid) in this step to focus on the environmental dispersion mechanisms.
+To strictly isolate the physical impact of weather on pollution, we fit a **multiple linear regression model** using a selection of quantitative meteorological variables. While our data is structured as a time-series dataset, we utilize an **Ordinary Least Squares (OLS)** approach to quantify the direct impact of atmospheric drivers.
+
+**Variable Selection (WE Variables):**
+
+From the various meteorological (WE) variables available in the Agrimonia dataset, we selected four primary drivers (**Temperature, Wind Speed, Precipitation, and Humidity**) based on established atmospheric physics. These variables represent the fundamental mechanisms of washout (precipitation) and ventilation (wind speed and temperature-driven boundary layer dynamics). At this stage, we exclude seasonality and human factors (Covid) to focus exclusively on these natural dispersion mechanisms.
 
 **Model Specification:**
 

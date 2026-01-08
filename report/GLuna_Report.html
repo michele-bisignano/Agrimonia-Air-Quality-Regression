@@ -15,7 +15,7 @@
 <meta name="author" content="Lino Mazzoleni (1098962)" />
 <meta name="author" content="Michele Bisignano (1099385)" />
 
-<meta name="date" content="2025-12-29" />
+<meta name="date" content="2026-01-08" />
 
 <title>Analysis of PM10 Drivers in Lombardy: A Time-Series Regression Approach</title>
 
@@ -3091,7 +3091,7 @@ Time-Series Regression Approach</h1>
 <h4 class="author">Fabio Ghislanzoni (1099423)</h4>
 <h4 class="author">Lino Mazzoleni (1098962)</h4>
 <h4 class="author">Michele Bisignano (1099385)</h4>
-<h4 class="date">2025-12-29</h4>
+<h4 class="date">2026-01-08</h4>
 
 </div>
 
@@ -3119,10 +3119,13 @@ as a natural experiment.</li>
 <div id="data-selection-and-preparation" class="section level1" number="2">
 <h1><span class="header-section-number">2</span> Data Selection and
 Preparation</h1>
-<p>The analysis is based on the <em>Agrimonia</em> dataset (2016-2021).
-To ensure robust statistical inference, we adopted a <strong>Time-Series
-approach</strong>, fixing the spatial dimension to focus exclusively on
-temporal dynamics.</p>
+<p>The analysis is based on the <strong>Agrimonia dataset
+(2016-2021)</strong>. We focus on a single geographical location over
+time, treating the data as a <strong>time-series dataset</strong>. To
+analyze the relationships between factors and PM10, we apply a multiple
+linear regression model, which allows us to quantify how daily
+variations in meteorology and policies influence the temporal dynamics
+of pollutants.</p>
 <div id="station-selection-strategy" class="section level2" number="2.1">
 <h2><span class="header-section-number">2.1</span> Station Selection
 Strategy</h2>
@@ -3576,9 +3579,20 @@ free from significant multicollinearity bias.</li>
 <h3><span class="header-section-number">3.2.5</span> Regression
 Modeling: Meteorological Drivers</h3>
 <p>To strictly isolate the physical impact of weather on pollution, we
-fit a linear model using only quantitative meteorological variables. We
-exclude seasonality and human factors (Covid) in this step to focus on
-the environmental dispersion mechanisms.</p>
+fit a <strong>multiple linear regression model</strong> using a
+selection of quantitative meteorological variables. While our data is
+structured as a time-series dataset, we utilize an <strong>Ordinary
+Least Squares (OLS)</strong> approach to quantify the direct impact of
+atmospheric drivers.</p>
+<p><strong>Variable Selection (WE Variables):</strong></p>
+<p>From the various meteorological (WE) variables available in the
+Agrimonia dataset, we selected four primary drivers
+(<strong>Temperature, Wind Speed, Precipitation, and Humidity</strong>)
+based on established atmospheric physics. These variables represent the
+fundamental mechanisms of washout (precipitation) and ventilation (wind
+speed and temperature-driven boundary layer dynamics). At this stage, we
+exclude seasonality and human factors (Covid) to focus exclusively on
+these natural dispersion mechanisms.</p>
 <p><strong>Model Specification:</strong></p>
 <p>To ensure complete transparency and robustness of our findings, we
 report four key metrics for each predictor in the regression table:</p>
@@ -3719,6 +3733,54 @@ Precipitation
 </tr>
 </tbody>
 </table>
+<table class="table" style="width: auto !important; margin-left: auto; margin-right: auto;">
+<caption>
+Variance Inflation Factor (VIF) Analysis
+</caption>
+<thead>
+<tr>
+<th style="text-align:left;">
+</th>
+<th style="text-align:right;">
+VIF
+</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align:left;">
+Temp
+</td>
+<td style="text-align:right;">
+1.237699
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+WindSpeed
+</td>
+<td style="text-align:right;">
+1.603033
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+Precipitation
+</td>
+<td style="text-align:right;">
+1.461962
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+Humidity
+</td>
+<td style="text-align:right;">
+1.939913
+</td>
+</tr>
+</tbody>
+</table>
 <p><strong>Interpretation of Results:</strong></p>
 <p>All meteorological variables included in the model are <strong>highly
 statistically significant</strong> (<span class="math inline">\(p &lt;
@@ -3742,7 +3804,7 @@ have less pollution). This captures the inverse of the “winter effect”:
 cold temperatures (typical of inversion layers) are associated with
 higher PM10 levels.</li>
 </ol>
-<pre class="r"><code># Estraiamo l&#39;R-quadrato per rispondere alla domanda del professore
+<pre class="r"><code># Estraiamo l&#39;R-quadrato
 r_sq &lt;- summary(model_meteo)$r.squared
 adj_r_sq &lt;- summary(model_meteo)$adj.r.squared</code></pre>
 <p><strong>Model Performance:</strong> The meteorological model explains
