@@ -103,6 +103,7 @@ df_final <- df_intermediate %>%
   select(
     Date = Time,
     Y = all_of(selected_pollutant),  # Rename AQ_pm10 to 'Y'
+    AQ_no2 = AQ_no2,
     
     # Core Weather Covariates (Renamed for functions/plots)
     Temp = WE_temp_2m,

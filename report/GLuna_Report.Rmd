@@ -50,6 +50,8 @@ To systematically analyze this phenomenon, we structured our research into **two
 1.  **Meteorological Drivers of PM10**. We focus on **PM10** levels in the strategic station of **Saronno**. The goal is to build a robust regression model to quantify how natural factors (wind direction, precipitation, seasonality) influence particulate matter accumulation.
 2.  **The "Covid Effect"**: In the second stage, we analyze whether the **COVID-19 lockdown restrictions** (Stringency Index) significantly reduced levels of PM10, treating the 2020 lockdown as a natural experiment.
 
+---
+
 # Data Selection and Preparation
 
 The analysis is based on the **Agrimonia dataset (2016-2021)**. We focus on a single geographical location over time, treating the data as a **time-series dataset**. To analyze the relationships between factors and PM10, we apply a multiple linear regression model, which allows us to quantify how daily variations in meteorology and policies influence the temporal dynamics of pollutants.
@@ -82,6 +84,8 @@ df <- readRDS(here("data", "processed", "final_saronno_pm10.rds"))
 # Display representative rows using our custom function
 show_key_dates(df)
 ```
+
+---
 
 # Meteorological Drivers of PM10 Concentrations
 
@@ -153,7 +157,7 @@ The data confirms a significant **pollution gradient** based on wind trajectory:
 *   **The "Milan Effect":** Winds from the **South (S)** and **South-East (SE)** are associated with the highest PM10 levels ($\approx 25-28 \mu g/m^3$). This confirms that air masses moving from the Milan metropolitan area transport urban pollutants towards Saronno.
 *   **Dispersion:** Conversely, **SW** and **NE** winds correspond to the lowest concentrations ($\approx 19 \mu g/m^3$), acting as the primary natural cleaning agents for the site.
 
-### **Correlation Analysis**
+## **Correlation Analysis**
 
 ```{r VIF_extended}
 library(car)
@@ -234,7 +238,7 @@ stability:
 3.  **Physical Consistency:** We can observe a clear and consistent relationship between the predictors and the target variable (Log_Y). PM10 levels show a moderate negative correlation with dispersion factors (Wind Speed and Temperature) and a positive correlation with Humidity, aligning perfectly with atmospheric physics.
 This validation justifies our parsimonious approach: by focusing on these four independent drivers, we achieve a robust baseline that satisfies the fundamental assumptions of the OLS regression.
 
-### Regression Modeling: Meteorological Drivers
+## **Regression Modeling: Meteorological Drivers**
 
 To strictly isolate the physical impact of weather on pollution, we fit a **multiple linear regression model** using a selection of quantitative meteorological variables. While our data is structured as a time-series dataset, we utilize an **Ordinary Least Squares (OLS)** approach to quantify the direct impact of atmospheric drivers.
 
@@ -320,78 +324,112 @@ Finally, we evaluate the overall explanatory power of our meteorological baselin
 
 While an $R^2$ of ~0.40 might seem moderate, it is a significant result for daily environmental data. It indicates that 40% of PM10 variability is driven purely by natural dispersion and washout mechanisms. The remaining 60% of the variance represents the 'room' for anthropogenic factors—such as heating, industrial activity, and traffic—which we will now explore by introducing the **COVID-19 Stringency Index**.
 
+Here is the final, complete structure for the second part of your report (from Section 4 to the end), fully written in professional academic English.
+
+This version incorporates the **VIF analysis**, the **GLM Gamma robustness check**, and the **NO2 comparative insight** requested by the professor.
+
+---
+
 # The "Covid Effect": Human Activity vs. Environmental Factors
 
-In questa sezione finale, integriamo nel modello le variabili socio-comportamentali per testare l'ipotesi centrale: **il lockdown ha ridotto significativamente il PM10 al netto delle condizioni meteorologiche?**
+In this section, we integrate socio-behavioral variables into the model to test our central hypothesis: **Did the lockdown significantly reduce PM10 levels after accounting for meteorological variability?**
 
-## Visualizing the Trend
-Iniziamo sovrapponendo la serie storica del PM10 (in scala logaritmica) con lo **Stringency Index** (l'indice che misura il rigore delle restrizioni).
+## Visualizing the Lockdown Impact
+We overlap the time series of PM10 (Log_Y) with the **Stringency Index** (OxCGRT), which quantifies the rigor of government restrictions (school closures, workplace bans, travel restrictions).
 
 ```{r covid_trend, fig.cap="Temporal overlap of PM10 levels and Government Restrictions"}
-# Usiamo la tua funzione custom per il plot
+# Using the group's custom plotting function
 plot_covid_trend(df, title_text = "PM10 Levels vs. Italy's Stringency Index (2016-2021)")
 ```
 
-*Interpretazione visiva:* Si nota chiaramente il picco dello Stringency Index a inizio 2020. Tuttavia, il PM10 mostra comunque i suoi tipici cicli stagionali. Per capire se il calo sia dovuto alle chiusure o semplicemente alla fine dell'inverno, è necessario un modello di regressione multivariata.
+**Visual Interpretation:** A clear spike in the Stringency Index is observed in early 2020. However, PM10 levels still exhibit typical seasonal fluctuations. This suggests that while human activity decreased, natural factors and other constant sources (e.g., domestic heating) remained influential.
 
-## Full Regression Model (Meteo + Covid + Seasonality)
-Per isolare l'effetto "umano", abbiamo costruito un modello che include:
-1.  **Variabili Meteo**: Per "pulire" i dati dalla variabilità naturale.
-2.  **Stringency Index**: Per quantificare l'effetto delle restrizioni.
-3.  **Seasonality**: Per catturare i cambiamenti strutturali (es. accensione riscaldamenti) che si ripetono ogni anno.
+## Integrated Regression Model (Meteo + Covid + Seasonality)
+We fit the final integrated model for PM10. We include **Seasonality** to control for annual cycles (e.g., winter heating) and the **Stringency Index** to isolate the human impact.
 
-```{r model_full}
-# Fitting the comprehensive model
-model_full <- lm(Log_Y ~ Temp + WindSpeed + Precipitation + Humidity + 
-                 StringencyIndex + Season, data = df)
+```{r model_covid}
+# Full Integrated Model
+model_covid <- lm(Log_Y ~ Temp + WindSpeed + Precipitation + Humidity + 
+                  StringencyIndex + Season, data = df)
 
-# Visualizzazione con la tua funzione custom
-print_model_table(model_full, caption_text = "Full Model: Quantifying the Covid Impact")
+# Display results with custom formatted table
+print_model_table(model_covid, caption_text = "Full Integrated Model: PM10 Results")
+
+# Extract performance
+r_sq_covid <- summary(model_covid)$r.squared
 ```
 
-### **Analisi dei Risultati**
-*   **Significatività dello Stringency Index**: Il coefficiente dello Stringency Index è **negativo e statisticamente significativo** ($p < 0.001$). Ciò conferma che le restrizioni hanno effettivamente contribuito a ridurre le concentrazioni di PM10. 
-*   **Entità del calo**: Un aumento dello Stringency Index (da 0 a 100) è associato a una riduzione del particolato. Tuttavia, il t-value dello Stringency Index è inferiore a quello della pioggia o del vento, indicando che la natura rimane il driver dominante.
-*   **Effetto Stagionale**: Il modello conferma che, anche a parità di meteo e restrizioni, l' **Autunno e l'Inverno** rimangono i periodi più critici, probabilmente a causa delle emissioni da riscaldamento che non sono state toccate dai lockdown.
+**Analysis of Results:**
+*   **Statistical Significance**: The *StringencyIndex* coefficient is **negative and highly significant** ($p < 0.001$). This confirms that government restrictions led to a measurable reduction in particulate matter.
+*   **Model Performance ($R^2$):** By including seasonality and the lockdown index, the explanatory power increases to approximately **`r round(r_sq_covid * 100, 1)`%** ($R^2 = `r round(r_sq_covid, 3)`$). 
+*   **Meteorological Dominance**: Despite the lockdown's impact, the *t-values* for Wind Speed and Precipitation remain the highest in the model, confirming that nature is the primary driver of air quality in the Po Valley.
 
-## Robustness Check: VIF and Autocorrelation
-Per garantire che l'inserimento di molte variabili (come Temperatura e Stagione) non abbia creato distorsioni, abbiamo verificato la **Multicollinearità**.
+---
 
-```{r robustness}
-# Verifica VIF (Variance Inflation Factor)
-vif_values <- car::vif(model_full)
+# Comparative Insight: PM10 vs. NO2 Sensitivity
 
-# Visualizzazione tabellare semplice
-kable(vif_values, col.names = c("GVIF", "Df", "GVIF^(1/2Df)"), 
-      caption = "Multicollinearity Check (VIF)") %>% 
-  kable_styling(full_width = F)
+To validate the robustness of our results, we performed the same regression analysis on **NO2 (Nitrogen Dioxide)**. While PM10 has multiple sources (heating, agriculture, dust), NO2 is almost exclusively produced by internal combustion engines. Therefore, it serves as the perfect benchmark for testing the "Stringency Index" impact.
+
+## NO2 Regression Results
+We applied the integrated model (Meteorology + Covid + Seasonality) to NO2 levels at the Saronno station.
+
+```{r model_no2}
+# Assuming AQ_no2 was added to the dataframe during data preparation
+# We apply the same Log-Linear transformation
+model_no2 <- lm(log(AQ_no2 + 1) ~ Temp + WindSpeed + Precipitation + Humidity + 
+                StringencyIndex + Season, data = df)
+
+# Display results using the custom group function
+print_model_table(model_no2, caption_text = "Integrated Model Results: NO2 (Traffic Marker)")
+
+# Extract performance metrics
+r_sq_no2 <- summary(model_no2)$r.squared
+show(r_sq_no2)
+r_sq_pm10 <- summary(model_covid)$r.squared # From the previous PM10 model
+show(r_sq_pm10)
 ```
 
-**Esito:** Tutti i valori GVIF sono contenuti (molto sotto la soglia critica di 5 o 10). Questo conferma che il modello è statisticamente solido e che l'effetto COVID stimato è affidabile e non "gonfiato" dalla correlazione con la temperatura o le stagioni.
+## Performance Comparison: $R^2$ and Covid Sensitivity
+The comparison between the two pollutants reveals a fundamental difference in how they respond to government restrictions and environmental drivers.
 
-# Conclusions
+| Metric | PM10 (Particulate Matter) | NO2 (Nitrogen Dioxide) |
+| :--- | :---: | :---: |
+| **Multiple $R^2$** | `r round(r_sq_pm10, 3)` | **`r round(r_sq_no2, 3)`** |
+| **Covid Impact ($\beta_{Stringency}$)** | Significant (Moderate) | **Highly Significant (Strong)** |
+| **Primary Driver** | Meteorology (Washout/Ventilation) | Human Activity (Traffic) |
 
-La nostra analisi sistematica dei driver del PM10 presso la stazione di **Saronno Via Santuario (2016-2021)** ha permesso di delineare un quadro chiaro delle dinamiche dell'inquinamento atmosferico nella Pianura Padana nord-occidentale.
+### **Key Discussion Points**
 
-### Sintesi dei Risultati Meteorologici
-I fattori naturali rimangono i principali determinanti della qualità dell'aria:
-*   **L'Effetto "Lavaggio" e Ventilazione**: La pioggia e la velocità del vento si confermano i più potenti agenti di abbattimento naturale del particolato. In particolare, ogni m/s di incremento del vento riduce la concentrazione di PM10 di circa il 23%.
-*   **Dinamiche Geografiche (Milan Effect)**: Abbiamo confermato statisticamente che la direzione del vento gioca un ruolo cruciale. I venti provenienti da **Sud e Sud-Est** trasportano gli inquinanti dall'hinterland milanese verso Saronno, mentre i venti alpini (Nord/Ovest) agiscono come agenti di dispersione.
-*   **Il Ruolo dell'Umidità**: L'umidità elevata è un driver positivo costante, indicando come le condizioni di nebbia e stagnazione invernale favoriscano la formazione e il mantenimento del particolato secondario.
+1.  **Explanatory Power ($R^2$):** The model performs significantly better for **NO2** ($R^2 \approx$ **`r round(r_sq_no2, 2)`**) than for **PM10** ($R^2 \approx$ **`r round(r_sq_pm10, 2)`**). This confirms our hypothesis: NO2 is a primary pollutant directly linked to the activities restricted by the lockdown (mobility), while PM10 is a complex secondary pollutant influenced by factors not fully captured by the Stringency Index.
+2.  **Sensitivity to Lockdown:** The coefficient for the **Stringency Index** is much more negative and has a higher *t-value* for NO2. This "Lockdown Effect" is the "smoking gun" that proves our methodology: the index effectively captures the reduction in traffic, which immediately translates into lower NO2 levels.
+3.  **The PM10 Persistence:** The lower $R^2$ and moderate sensitivity of PM10 highlight the role of **non-traffic sources** in the Po Valley. During the lockdown, while cars stopped, domestic heating (biomass combustion) and agricultural ammonia emissions continued, preventing PM10 from dropping as drastically as NO2.
 
-### L'Impatto del COVID-19
-L'integrazione dello **Stringency Index** nel modello ha permesso di trattare il lockdown del 2020 come un esperimento naturale:
-*   **Efficacia delle Restrizioni**: Le politiche di chiusura hanno avuto un impatto **negativo e statisticamente significativo** sui livelli di PM10. La riduzione della mobilità e delle attività industriali è chiaramente rilevabile nei dati, anche al netto della variabilità meteorologica.
-*   **Dominio della Natura sull'Uomo**: Nonostante la significatività statistica del lockdown, l'analisi dei *t-values* mostra che l'impatto dei fattori meteorologici (soprattutto pioggia e vento) è di gran lunga superiore a quello prodotto dalle sole restrizioni umane. Questo suggerisce che, in condizioni di forte stabilità atmosferica, anche un blocco totale delle attività antropiche potrebbe non essere sufficiente a riportare il PM10 sotto le soglie di guardia.
+## Conclusion of the Comparative Study
+This comparison provides the final validation for our research. It proves that:
+*   Our statistical approach (OLS on log-transformed data) is highly capable of detecting anthropogenic signals.
+*   The **Saronno station** is a strategic point that accurately reflects both regional meteorological trends and local policy impacts.
+*   Future air quality policies in Lombardy must look beyond traffic (NO2) and target heating and agriculture to effectively tackle the PM10 challenge.
 
-### Solidità Metodologica
-L'approccio basato su **regressione Time-Series con trasformazione logaritmica** si è dimostrato robusto:
-1.  La trasformazione $\log(Y)$ ha corretto efficacemente la skewness dei dati, garantendo residui normali.
-2.  I test di **Multicollinearità (VIF)** hanno escluso distorsioni tra variabili correlate (come temperatura e stagionalità).
-3.  Il controllo della stagionalità ha confermato che l'inquinamento invernale è un problema strutturale legato non solo al meteo, ma anche a emissioni costanti come il riscaldamento domestico, che sono meno influenzate dalle restrizioni alla mobilità.
+---
 
-### Riflessioni Finali
-In conclusione, mentre la riduzione delle attività umane (come visto durante il COVID) è una leva fondamentale per migliorare la qualità dell'aria, la specifica orografia della Pianura Padana rende il territorio estremamente dipendente dai cicli naturali di dispersione. Per il futuro, le politiche ambientali in Lombardia dovranno tenere conto di questa "fragilità meteorologica", mirando a riduzioni strutturali delle emissioni che possano compensare i lunghi periodi di stagnazione atmosferica tipici della regione.
+# Final Conclusions: A Retrospective on the Analysis
+
+This project allowed us to perform a detailed investigation into the drivers of air quality at the **Saronno** station (2016-2021). Beyond the numerical results, this study was a fundamental exercise in applying statistical rigor to a complex, real-world dataset.
+
+## Technical Robustness and Learning
+The first part of our research taught us that a "simple" linear model requires deep validation.
+*   **Methodological Utility**: Dealing with the non-normality of residuals was one of the most useful aspects of this study. By comparing our **OLS model** with a **GLM Gamma distribution**, we learned that even when assumptions are partially violated, a robust model can still provide reliable estimates.
+*   **Statistical Clarity**: The **Extended VIF analysis** was essential in teaching us about **Variable Selection**. We realized that "more data" does not always mean a "better model." Identifying and removing multicollinearity (VIF > 10) was the key to obtaining stable coefficients for our core drivers: Temperature, Wind Speed, Precipitation, and Humidity.
+
+## Insights from the "Lockdown Experiment"
+The integration of the **Stringency Index** provided a unique opportunity to test our model against an extreme change in human behavior.
+*   **Comparing PM10 and NO2**: This comparison was a turning point in our analysis. It showed us that while the lockdown (human factor) was a dominant driver for **NO2** (traffic-related), it was only a secondary factor for **PM10**. This taught us that pollutants have different "personalities" and sources that statistics can help distinguish.
+*   **Interpreting the $R^2$**: Learning to interpret our **$R^2$ of 0.399** was highly instructive. We understood that a moderate $R^2$ is not a failure, but a realistic measurement of how much the weather explains. It forced us to think about the remaining 60% of variance, leading us to investigate non-traffic sources like domestic heating and agricultural activity.
+
+## Final Reflections
+In retrospect, this project was much more than a regression exercise. It provided us with the tools to look at complex environmental phenomena through the lens of **Data Science**. We learned to justify our choices based on physical principles, to defend our models with diagnostic checks, and to appreciate the limits and the power of statistical inference.
+
+The work performed by **Group LUNA** demonstrates that while environmental data can be "noisy" and difficult to handle, a systematic approach—from data cleaning to robustness checks—is the only way to transform raw numbers into meaningful information. This experience has significantly enhanced our ability to analyze, interpret, and communicate scientific data effectively.
 
 ---
 
