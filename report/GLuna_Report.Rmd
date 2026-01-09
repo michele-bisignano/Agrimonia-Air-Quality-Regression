@@ -155,28 +155,98 @@ The data confirms a significant **pollution gradient** based on wind trajectory:
 
 ### **Correlation Analysis**
 
-Prior to model fitting, we examine the **correlation matrix** of the numerical variables. This analysis serves two primary objectives:
+```{r VIF_extended}
+library(car)
+library(kableExtra)
 
-*   **Variable Selection:** Identifying which meteorological and social factors share a significant relationship with PM10 levels.
-*   **Multicollinearity Check:** Ensuring that independent variables are not excessively correlated ($|r| > 0.7$), which could destabilize regression coefficients.
+# 1. Prepariamo i dati escludendo i duplicati esatti per evitare VIF = Inf
+# (Rimuoviamo le originali WE_ che sono identiche a Temp, WindSpeed, ecc.)
+df_vif_full <- df %>% 
+  select(Log_Y, Temp, WindSpeed, Precipitation, Humidity, starts_with("WE_"))
 
-![Pearson Correlation Matrix](../output/graph/04_correlogram.png)
+# 2. Fit del modello
+model_vif_full <- lm(Log_Y ~ ., data = df_vif_full)
 
-### **Key Findings**
+# 3. Calcolo del VIF
+vif_full <- vif(model_vif_full)
 
-1.  **Target Variable (Log_Y):**
-    *   **Negative Correlation with Wind Speed & Temp:** Consistent with atmospheric physics, stronger winds facilitate pollutant dispersion, while higher temperatures often correlate with increased boundary layer height and reduced domestic heating emissions.
-2.  **Model Stability:**
-    *   **Multicollinearity:** Most predictors show moderate to low inter-correlations. Since no pair exceeds the critical threshold of **0.7**, we expect the regression model to be stable and free from significant multicollinearity bias.
+# 4. Trasformazione in dataframe
+if (is.matrix(vif_full)) {
+  vif_df_full <- as.data.frame(vif_full)
+  vif_df_full$Variable <- rownames(vif_full)
+  colnames(vif_df_full)[1] <- "VIF_Value"
+  vif_df_full <- vif_df_full[, c("Variable", "VIF_Value")]
+} else {
+  vif_df_full <- data.frame(Variable = names(vif_full), VIF_Value = as.numeric(vif_full))
+}
 
+# 5. Definizione logica colori (Soglia VIF = 5)
+# Creiamo dei vettori di indici per le righe "buone" e "cattive"
+bad_rows <- which(vif_df_full$VIF_Value > 5)
+good_rows <- which(vif_df_full$VIF_Value <= 5)
+
+# 6. Visualizzazione con colori condizionali
+kable(vif_df_full, digits = 2, caption = "Extended VIF Analysis: Red indicates High Collinearity (>5)") %>%
+  kable_styling(bootstrap_options = c("striped", "hover"), full_width = F) %>%
+  # Applichiamo il ROSSO alle righe con VIF alto
+  row_spec(bad_rows, bold = TRUE, color = "#B22222", background = "#FFE6E6") %>%
+  # Applichiamo il VERDE alle righe con VIF basso
+  row_spec(good_rows, color = "#006400", background = "#E6FFE6")
+```
+
+**Interpretation of Extended VIF Analysis:**
+
+The extended VIF analysis confirms that the full set of meteorological (WE) variables in the Agrimonia dataset is highly redundant. As requested, we tested a model including all available weather parameters, and the results provide a clear justification for our initial variable selection:
+
+1.  **Severe Multicollinearity:** Several variables exhibit VIF values well above the critical threshold of 10. For instance, Humidity (VIF = 29.75) and WindSpeed (VIF = 14.29) show extreme instability when paired with their related metrics like WE_rh_min (VIF = 17.40) or WE_wind_speed_100m_mean (VIF = 15.85).
+
+2.  **Redundancy of Information:** The high VIF for wind speed at different heights and various humidity measures indicates that these variables carry nearly identical information. Including them simultaneously inflates the standard errors of the β coefficients, making the estimates unreliable.
+
+3.  **Statistical Parsimony:** This evidence supports our decision to adopt a parsimonious model focused on four core physical drivers (Temperature, Wind Speed, Precipitation, and Humidity). By removing the redundant "extra" variables, we eliminate collinearity bias, ensuring that our final results are both statistically stable and physically interpretable.
+
+### Core Model Validation: Stability & Correlation**
+
+Following the removal of redundant meteorological factors, we verify the stability of our refined model. As shown in the following table and heatmap, the VIF values have been successfully minimized, and inter-predictor correlations are now strictly controlled, ensuring robust and unbiased estimates.
+
+```{r core_validation, fig.show="hold", out.width="50%"}
+model_meteo <- lm(Log_Y ~ Temp + WindSpeed + Precipitation + Humidity, data = df)
+vif_core <- car::vif(model_meteo)
+vif_df_core <- data.frame(Variable = names(vif_core), VIF = as.numeric(vif_core))
+
+kable(vif_df_core, digits = 2, caption = "Final Model VIF (Stability)") %>%
+  kable_styling(bootstrap_options = c("striped", "hover"), full_width = F)
+
+# 2. HEATMAP CORE
+# Selezioniamo il target e i 4 core
+df_corr_final <- df %>% 
+  select(Log_Y, Temp, WindSpeed, Precipitation, Humidity)
+
+M_final <- cor(df_corr_final, use = "complete.obs")
+
+# Plot Heatmap
+corrplot::corrplot(M_final, 
+                   method = "color", 
+                   type = "upper", 
+                   addCoef.col = "black", 
+                   tl.col = "black", 
+                   diag = FALSE,
+                   title = "Cleaned Correlation Matrix",
+                   mar = c(0,0,2,0))
+```
+
+**Interpretation of Core Model Validation**
+
+The results from the core model validation demonstrate a significant improvement in statistical 
+stability:
+
+1.  **VIF Analysis:** All Variance Inflation Factor (VIF) values are now below 2.0 (ranging from 1.24 to 1.94). This is well below the conservative threshold of 5, indicating that multicollinearity has been effectively eliminated. Each meteorological driver now provides independent information to the model, ensuring that the estimated coefficients are reliable and not inflated by redundancy.
+2.  **Correlation Matrix:** The Cleaned Correlation Matrix confirms that no pair of predictors exceeds the ∣r∣>0.7 threshold. Specifically, the high inter-correlations previously observed in the full dataset (e.g., between different wind metrics) have been resolved by selecting a single primary representative for each physical mechanism.
+3.  **Physical Consistency:** We can observe a clear and consistent relationship between the predictors and the target variable (Log_Y). PM10 levels show a moderate negative correlation with dispersion factors (Wind Speed and Temperature) and a positive correlation with Humidity, aligning perfectly with atmospheric physics.
+This validation justifies our parsimonious approach: by focusing on these four independent drivers, we achieve a robust baseline that satisfies the fundamental assumptions of the OLS regression.
 
 ### Regression Modeling: Meteorological Drivers
 
 To strictly isolate the physical impact of weather on pollution, we fit a **multiple linear regression model** using a selection of quantitative meteorological variables. While our data is structured as a time-series dataset, we utilize an **Ordinary Least Squares (OLS)** approach to quantify the direct impact of atmospheric drivers.
-
-**Variable Selection (WE Variables):**
-
-From the various meteorological (WE) variables available in the Agrimonia dataset, we selected four primary drivers (**Temperature, Wind Speed, Precipitation, and Humidity**) based on established atmospheric physics. These variables represent the fundamental mechanisms of washout (precipitation) and ventilation (wind speed and temperature-driven boundary layer dynamics). At this stage, we exclude seasonality and human factors (Covid) to focus exclusively on these natural dispersion mechanisms.
 
 **Model Specification:**
 
@@ -231,17 +301,40 @@ plot(model_meteo)
 
 **Interpretation of Diagnostics:**
 
-*   **Linearity & Homoscedasticity:** The *Residuals vs Fitted* and *Scale-Location* plots show a relatively flat red trend line and a random distribution of residuals around zero. This confirms that the linear functional form is appropriate and that the error variance is constant (homoscedasticity) across the range of values.
-*   **Normality of Residuals:** The *Normal Q-Q plot* demonstrates that the residuals align closely with the theoretical diagonal. This provides strong empirical evidence that the **Log-transformation of PM10** effectively normalized the target variable, satisfying the Gaussian assumption of the OLS estimator required for valid hypothesis testing.
-*   **Influential Observations:** The *Residuals vs Leverage* plot reveals that all observations fall well within the thresholds of **Cook’s Distance**. This indicates that our model coefficients are robust and not biased by individual extreme outliers.
+*   **Linearity & Homoscedasticity:** The Residuals vs Fitted and Scale-Location plots show a relatively flat red trend line. This confirms that the functional form is generally appropriate and that there is no severe heteroscedasticity.
+*   **Normality of Residuals (Critical Review):** The Normal Q-Q plot follows the theoretical diagonal in the central part of the distribution but shows clear deviations in the tails (heavy tails). This indicates that, despite the log-transformation, the normality assumption is not fully satisfied. This suggests that an OLS model might not be the most efficient estimator for the extreme values of the distribution. To address this, a robustness check using a Gamma distribution will be conducted in the following section.
+*   **Influential Observations:** The Residuals vs Leverage plot confirms that all observations remain within the thresholds of Cook’s Distance. No individual day or outlier is disproportionately biasing the regression coefficients.
 
 
-# Conclusions
+### **Robustness Check: GLM Gamma Model**
 
-Our analysis of PM10 concentrations at Saronno Via Santuario highlights the critical role of weather conditions:
-1. Humidity: Shows a positive estimate (Red). High humidity is often associated with stable atmospheric conditions and fog (typical of the Po Valley winter), which trap pollutants at ground level.
-2. Temperature: Shows a negative correlation (Green/Blue). Warmer days facilitate atmospheric mixing, reducing concentrations.
-Dispersion Factors: Both Wind Speed and Precipitation have strong negative coefficients (p<0.001). This statistically confirms their role as the primary natural cleansing agents for particulate matter
+To address the deviations from normality observed in the OLS residuals (Q-Q plot), we implemented a **Generalized Linear Model (GLM) with a Gamma distribution and a log link**. The Gamma distribution is theoretically more flexible for positive, right-skewed data like PM10, as it does not assume normal errors.
+
+```{r model_gamma}
+# 1. Fit del modello Gamma (usiamo Y originale, non log)
+# Aggiungiamo 0.001 per sicurezza statistica (Y deve essere > 0)
+model_gamma <- glm((Y + 0.001) ~ Temp + WindSpeed + Precipitation + Humidity, 
+                   data = df, 
+                   family = Gamma(link = "log"))
+
+# 2. Tabella di confronto dei coefficienti Beta
+comparison_tab <- data.frame(
+  Variable = names(coef(model_meteo))[-1],
+  OLS_LogY = round(coef(model_meteo)[-1], 4),
+  GLM_Gamma = round(coef(model_gamma)[-1], 4)
+)
+
+kable(comparison_tab, caption = "Comparison of Estimates: OLS vs. GLM Gamma") %>%
+  kable_styling(bootstrap_options = c("striped", "hover"), full_width = F)
+```
+
+The comparison shows that the **$\beta$ coefficients are nearly identical** across both models. This consistency confirms that the minor violation of the normality assumption in the OLS model does not affect the physical interpretation of the results. The meteorological drivers' impacts are robust and reliable.
+
+### **Model Performance and $R^2$ Analysis**
+
+Finally, we evaluate the overall explanatory power of our meteorological baseline. The Multiple $R^2$ for the core model is **0.399**.
+
+While an $R^2$ of ~0.40 might seem moderate, it is a significant result for daily environmental data. It indicates that 40% of PM10 variability is driven purely by natural dispersion and washout mechanisms. The remaining 60% of the variance represents the 'room' for anthropogenic factors—such as heating, industrial activity, and traffic—which we will now explore by introducing the **COVID-19 Stringency Index**.
 
 # The "Covid Effect": Human Activity vs. Environmental Factors
 

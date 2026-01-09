@@ -99,33 +99,33 @@ df_final <- df_intermediate %>%
   
   # 2. Select variables
   # Y: The chosen pollutant (PM10)
-  # X: Weather variables (Temperature, Wind, Precipitation, Humidity)
-  # Note: We remove everything else to keep the dataset lightweight
+  # X: Weather variables (Core ones renamed + ALL other WE_ variables for VIF testing)
   select(
     Date = Time,
     Y = all_of(selected_pollutant),  # Rename AQ_pm10 to 'Y'
     
-    # Weather Covariates (X)
+    # Core Weather Covariates (Renamed for functions/plots)
     Temp = WE_temp_2m,
     WindSpeed = WE_wind_speed_10m_mean,
     Precipitation = WE_tot_precipitation,
     Humidity = WE_rh_mean,
+    WindDir = WE_mode_wind_direction_10m,
     
-    # Wind Direction (Important factor!)
-    WindDir = WE_mode_wind_direction_10m
+    # NEW: Include all other meteorological variables present in the dataset
+    # to address the professor's request for an extended VIF analysis.
+    starts_with("WE_") 
   ) %>% 
   
   # 3. Handle Missing Values
-  # We simply remove them. This is the cleanest and most honest approach 
-  # given the low percentage of missing data.
-  drop_na() %>% 
+  # We target drop_na only on the core variables to avoid losing rows 
+  # if an "extra" WE variable (not used in the main model) has NAs.
+  drop_na(Y, Temp, WindSpeed, Precipitation, Humidity) %>% 
   
   # 4. Feature Engineering (Model Preparation)
   mutate(
     Date = as.Date(Date),
     
     # Logarithmic Transformation (Crucial for normalizing residuals)
-    # We add +1 to avoid log(0) in case there are days with 0 PM10 (rare but possible)
     Log_Y = log(Y + 1), 
     
     # Create Seasonality
@@ -140,8 +140,6 @@ df_final <- df_intermediate %>%
     Season = factor(Season, levels = c("Winter", "Spring", "Summer", "Autumn")),
     
     # Handle Wind Direction
-    # If WindDir has too many rare levels, we might need to group them,
-    # but for now, we simply convert it to a factor.
     WindDir = as.factor(WindDir)
   )
 
