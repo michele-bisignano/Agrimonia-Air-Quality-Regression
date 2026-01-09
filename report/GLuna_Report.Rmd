@@ -159,18 +159,13 @@ The data confirms a significant **pollution gradient** based on wind trajectory:
 library(car)
 library(kableExtra)
 
-# 1. Prepariamo i dati escludendo i duplicati esatti per evitare VIF = Inf
-# (Rimuoviamo le originali WE_ che sono identiche a Temp, WindSpeed, ecc.)
 df_vif_full <- df %>% 
   select(Log_Y, Temp, WindSpeed, Precipitation, Humidity, starts_with("WE_"))
 
-# 2. Fit del modello
 model_vif_full <- lm(Log_Y ~ ., data = df_vif_full)
 
-# 3. Calcolo del VIF
 vif_full <- vif(model_vif_full)
 
-# 4. Trasformazione in dataframe
 if (is.matrix(vif_full)) {
   vif_df_full <- as.data.frame(vif_full)
   vif_df_full$Variable <- rownames(vif_full)
@@ -180,17 +175,14 @@ if (is.matrix(vif_full)) {
   vif_df_full <- data.frame(Variable = names(vif_full), VIF_Value = as.numeric(vif_full))
 }
 
-# 5. Definizione logica colori (Soglia VIF = 5)
-# Creiamo dei vettori di indici per le righe "buone" e "cattive"
 bad_rows <- which(vif_df_full$VIF_Value > 5)
 good_rows <- which(vif_df_full$VIF_Value <= 5)
 
-# 6. Visualizzazione con colori condizionali
 kable(vif_df_full, digits = 2, caption = "Extended VIF Analysis: Red indicates High Collinearity (>5)") %>%
   kable_styling(bootstrap_options = c("striped", "hover"), full_width = F) %>%
-  # Applichiamo il ROSSO alle righe con VIF alto
+
   row_spec(bad_rows, bold = TRUE, color = "#B22222", background = "#FFE6E6") %>%
-  # Applichiamo il VERDE alle righe con VIF basso
+
   row_spec(good_rows, color = "#006400", background = "#E6FFE6")
 ```
 
@@ -216,8 +208,6 @@ vif_df_core <- data.frame(Variable = names(vif_core), VIF = as.numeric(vif_core)
 kable(vif_df_core, digits = 2, caption = "Final Model VIF (Stability)") %>%
   kable_styling(bootstrap_options = c("striped", "hover"), full_width = F)
 
-# 2. HEATMAP CORE
-# Selezioniamo il target e i 4 core
 df_corr_final <- df %>% 
   select(Log_Y, Temp, WindSpeed, Precipitation, Humidity)
 
@@ -280,16 +270,6 @@ All meteorological variables included in the model are **highly statistically si
 3.  **Humidity ($\beta \approx +0.05$):** Shows a positive correlation. High humidity likely facilitates the formation of secondary particulate matter and traps pollutants near the ground.
 4.  **Temperature ($\beta \approx -0.02$):** Shows a negative relationship (warmer days have less pollution). This captures the inverse of the "winter effect": cold temperatures (typical of inversion layers) are associated with higher PM10 levels.
 
-```{r model_performance}
-# Estraiamo l'R-quadrato
-r_sq <- summary(model_meteo)$r.squared
-adj_r_sq <- summary(model_meteo)$adj.r.squared
-```
-
-**Model Performance:**
-The meteorological model explains **`r round(r_sq * 100, 1)`%** of the total variance in PM10 levels (Multiple $R^2$ = `r round(r_sq, 3)`). This indicates a strong fit, considering the high daily variability of atmospheric data.
-
-
 ### Diagnostics
 
 We check the validity of the model assumptions.
@@ -311,13 +291,11 @@ plot(model_meteo)
 To address the deviations from normality observed in the OLS residuals (Q-Q plot), we implemented a **Generalized Linear Model (GLM) with a Gamma distribution and a log link**. The Gamma distribution is theoretically more flexible for positive, right-skewed data like PM10, as it does not assume normal errors.
 
 ```{r model_gamma}
-# 1. Fit del modello Gamma (usiamo Y originale, non log)
-# Aggiungiamo 0.001 per sicurezza statistica (Y deve essere > 0)
+
 model_gamma <- glm((Y + 0.001) ~ Temp + WindSpeed + Precipitation + Humidity, 
                    data = df, 
                    family = Gamma(link = "log"))
 
-# 2. Tabella di confronto dei coefficienti Beta
 comparison_tab <- data.frame(
   Variable = names(coef(model_meteo))[-1],
   OLS_LogY = round(coef(model_meteo)[-1], 4),
@@ -332,7 +310,13 @@ The comparison shows that the **$\beta$ coefficients are nearly identical** acro
 
 ### **Model Performance and $R^2$ Analysis**
 
-Finally, we evaluate the overall explanatory power of our meteorological baseline. The Multiple $R^2$ for the core model is **0.399**.
+```{r model_performance}
+r_sq <- summary(model_meteo)$r.squared
+adj_r_sq <- summary(model_meteo)$adj.r.squared
+show(adj_r_sq)
+```
+
+Finally, we evaluate the overall explanatory power of our meteorological baseline. The Multiple $R^2$ for the core model is **0.397**.
 
 While an $R^2$ of ~0.40 might seem moderate, it is a significant result for daily environmental data. It indicates that 40% of PM10 variability is driven purely by natural dispersion and washout mechanisms. The remaining 60% of the variance represents the 'room' for anthropogenic factors—such as heating, industrial activity, and traffic—which we will now explore by introducing the **COVID-19 Stringency Index**.
 
