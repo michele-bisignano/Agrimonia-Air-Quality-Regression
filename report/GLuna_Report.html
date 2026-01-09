@@ -17,7 +17,7 @@
 
 <meta name="date" content="2026-01-09" />
 
-<title>Analysis of PM10 Drivers in Lombardy: A Time-Series Regression Approach</title>
+<title>Analysis of Pollution Drivers in Lombardy</title>
 
 <script>// Pandoc 2.9 adds attributes on both header and div. We remove the former (to
 // be compatible with the behavior of Pandoc < 2.8).
@@ -3084,8 +3084,8 @@ border-radius: 0px;
 
 
 
-<h1 class="title toc-ignore">Analysis of PM10 Drivers in Lombardy: A
-Time-Series Regression Approach</h1>
+<h1 class="title toc-ignore">Analysis of Pollution Drivers in
+Lombardy</h1>
 <h4 class="author">Group LUNA</h4>
 <h4 class="author">Mattia Franchini (1099581)</h4>
 <h4 class="author">Fabio Ghislanzoni (1099423)</h4>
@@ -3110,10 +3110,15 @@ into <strong>two distinct parts</strong>:</p>
 <strong>Saronno</strong>. The goal is to build a robust regression model
 to quantify how natural factors (wind direction, precipitation,
 seasonality) influence particulate matter accumulation.</li>
-<li><strong>The “Covid Effect”</strong>: In the second stage, we analyze
-whether the <strong>COVID-19 lockdown restrictions</strong> (Stringency
-Index) significantly reduced levels of PM10, treating the 2020 lockdown
-as a natural experiment.</li>
+<li><strong>The “Covid Effect”:</strong> To treat the 2020 lockdown as a
+“natural experiment,” utilizing the Oxford Stringency Index to evaluate
+whether government restrictions significantly reduced PM10 levels after
+filtering out meteorological noise.</li>
+<li><strong>Pollutant Sensitivity Analysis:</strong> To perform a
+comparative study between PM10 and NO2 (Nitrogen Dioxide). This final
+step validates our methodology by contrasting a multi-source pollutant
+(PM10) with one strictly linked to anthropogenic traffic markers
+(NO2).</li>
 </ol>
 <hr />
 </div>
@@ -4346,12 +4351,6 @@ dispersion and washout mechanisms. The remaining 60% of the variance
 represents the ‘room’ for anthropogenic factors—such as heating,
 industrial activity, and traffic—which we will now explore by
 introducing the <strong>COVID-19 Stringency Index</strong>.</p>
-<p>Here is the final, complete structure for the second part of your
-report (from Section 4 to the end), fully written in professional
-academic English.</p>
-<p>This version incorporates the <strong>VIF analysis</strong>, the
-<strong>GLM Gamma robustness check</strong>, and the <strong>NO2
-comparative insight</strong> requested by the professor.</p>
 <hr />
 </div>
 </div>
@@ -4588,17 +4587,22 @@ Precipitation
 </table>
 <pre class="r"><code># Extract performance
 r_sq_covid &lt;- summary(model_covid)$r.squared</code></pre>
-<p><strong>Analysis of Results:</strong> * <strong>Statistical
-Significance</strong>: The <em>StringencyIndex</em> coefficient is
-<strong>negative and highly significant</strong> (<span class="math inline">\(p &lt; 0.001\)</span>). This confirms that
-government restrictions led to a measurable reduction in particulate
-matter. * <strong>Model Performance (<span class="math inline">\(R^2\)</span>):</strong> By including seasonality
+<p><strong>Analysis of Results:</strong></p>
+<ul>
+<li><strong>Statistical Significance</strong>: The StringencyIndex
+coefficient for PM10 is negative but <strong>not statistically
+significant</strong> (p = 0.121). This suggests that while there was a
+downward trend, the reduction in PM10 during lockdown was largely
+absorbed by seasonal factors and meteorological variability.</li>
+<li><strong>Model Performance (<span class="math inline">\(R^2\)</span>):</strong> By including seasonality
 and the lockdown index, the explanatory power increases to approximately
 <strong>43.2%</strong> (<span class="math inline">\(R^2 =
-0.432\)</span>). * <strong>Meteorological Dominance</strong>: Despite
-the lockdown’s impact, the <em>t-values</em> for Wind Speed and
-Precipitation remain the highest in the model, confirming that nature is
-the primary driver of air quality in the Po Valley.</p>
+0.432\)</span>).</li>
+<li><strong>Meteorological Dominance</strong>: Despite the lockdown’s
+impact, the <em>t-values</em> for Wind Speed and Precipitation remain
+the highest in the model, confirming that nature is the primary driver
+of air quality in the Po Valley.</li>
+</ul>
 <hr />
 </div>
 </div>
@@ -4848,7 +4852,7 @@ environmental drivers.</p>
 </tr>
 <tr class="even">
 <td align="left"><strong>Covid Impact (<span class="math inline">\(\beta_{Stringency}\)</span>)</strong></td>
-<td align="center">Significant (Moderate)</td>
+<td align="center">Not Significant (p = 0.121)</td>
 <td align="center"><strong>Highly Significant (Strong)</strong></td>
 </tr>
 <tr class="odd">
@@ -4887,12 +4891,17 @@ preventing PM10 from dropping as drastically as NO2.</li>
 <h2><span class="header-section-number">5.3</span> Conclusion of the
 Comparative Study</h2>
 <p>This comparison provides the final validation for our research. It
-proves that: * Our statistical approach (OLS on log-transformed data) is
-highly capable of detecting anthropogenic signals. * The <strong>Saronno
-station</strong> is a strategic point that accurately reflects both
-regional meteorological trends and local policy impacts. * Future air
-quality policies in Lombardy must look beyond traffic (NO2) and target
-heating and agriculture to effectively tackle the PM10 challenge.</p>
+proves that:</p>
+<ul>
+<li>Our statistical approach (OLS on log-transformed data) is highly
+capable of detecting anthropogenic signals.</li>
+<li>The <strong>Saronno station</strong> is a strategic point that
+accurately reflects both regional meteorological trends and local policy
+impacts.</li>
+<li>Future air quality policies in Lombardy must look beyond traffic
+(NO2) and target heating and agriculture to effectively tackle the PM10
+challenge.</li>
+</ul>
 <hr />
 </div>
 </div>
@@ -4908,36 +4917,43 @@ dataset.</p>
 <h2><span class="header-section-number">6.1</span> Technical Robustness
 and Learning</h2>
 <p>The first part of our research taught us that a “simple” linear model
-requires deep validation. * <strong>Methodological Utility</strong>:
-Dealing with the non-normality of residuals was one of the most useful
-aspects of this study. By comparing our <strong>OLS model</strong> with
-a <strong>GLM Gamma distribution</strong>, we learned that even when
-assumptions are partially violated, a robust model can still provide
-reliable estimates. * <strong>Statistical Clarity</strong>: The
-<strong>Extended VIF analysis</strong> was essential in teaching us
-about <strong>Variable Selection</strong>. We realized that “more data”
-does not always mean a “better model.” Identifying and removing
-multicollinearity (VIF &gt; 10) was the key to obtaining stable
-coefficients for our core drivers: Temperature, Wind Speed,
-Precipitation, and Humidity.</p>
+requires deep validation.</p>
+<ul>
+<li><strong>Methodological Utility</strong>: Dealing with the
+non-normality of residuals was one of the most useful aspects of this
+study. By comparing our <strong>OLS model</strong> with a <strong>GLM
+Gamma distribution</strong>, we learned that even when assumptions are
+partially violated, a robust model can still provide reliable
+estimates.</li>
+<li><strong>Statistical Clarity</strong>: The <strong>Extended VIF
+analysis</strong> was essential in teaching us about <strong>Variable
+Selection</strong>. We realized that “more data” does not always mean a
+“better model.” Identifying and removing multicollinearity (VIF &gt; 10)
+was the key to obtaining stable coefficients for our core drivers:
+Temperature, Wind Speed, Precipitation, and Humidity.</li>
+</ul>
 </div>
 <div id="insights-from-the-lockdown-experiment" class="section level2" number="6.2">
 <h2><span class="header-section-number">6.2</span> Insights from the
 “Lockdown Experiment”</h2>
 <p>The integration of the <strong>Stringency Index</strong> provided a
 unique opportunity to test our model against an extreme change in human
-behavior. * <strong>Comparing PM10 and NO2</strong>: This comparison was
-a turning point in our analysis. It showed us that while the lockdown
+behavior.</p>
+<ul>
+<li><strong>Comparing PM10 and NO2</strong>: This comparison was a
+turning point in our analysis. It showed us that while the lockdown
 (human factor) was a dominant driver for <strong>NO2</strong>
 (traffic-related), it was only a secondary factor for
 <strong>PM10</strong>. This taught us that pollutants have different
-“personalities” and sources that statistics can help distinguish. *
-<strong>Interpreting the <span class="math inline">\(R^2\)</span></strong>: Learning to interpret our
+“personalities” and sources that statistics can help distinguish.</li>
+<li><strong>Interpreting the <span class="math inline">\(R^2\)</span></strong>: Learning to interpret our
 <strong><span class="math inline">\(R^2\)</span> of 0.399</strong> was
 highly instructive. We understood that a moderate <span class="math inline">\(R^2\)</span> is not a failure, but a realistic
 measurement of how much the weather explains. It forced us to think
 about the remaining 60% of variance, leading us to investigate
-non-traffic sources like domestic heating and agricultural activity.</p>
+non-traffic sources like domestic heating and agricultural
+activity.</li>
+</ul>
 </div>
 <div id="final-reflections" class="section level2" number="6.3">
 <h2><span class="header-section-number">6.3</span> Final
