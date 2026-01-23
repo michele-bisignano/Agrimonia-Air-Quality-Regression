@@ -503,9 +503,13 @@ The work performed by **Group LUNA** demonstrates that while environmental data 
 
 **Data Sources**
 
-*   **Agrimonia Dataset**: Malò, M. S., et al. (2021). *Agrimonia: a dataset of air quality and meteorological data for Northern Italy*.
-*   **Oxford COVID-19 Government Response Tracker (OxCGRT)**: Hale, T., et al. (2021). "A global panel database of pandemic policies". *Nature Human Behaviour*.
+*   **Agrimonia Dataset:**
+    *   Fassò, A., Rodeschini, J., Fusta Moro, A., Shaboviq, Q., Vinciguerra, M., Maranzano, P., Cameletti, M., Finazzi, F., Golini, N., Ignaccolo, R., & Otto, P. (2023). AgrImOnIA: Open Access dataset correlating livestock and air quality in the Lombardy region, Italy (3.0.0) [Data set]. Zenodo. https://doi.org/10.5281/zenodo.7956006
+    *   Fassò, A., Rodeschini, J., Fusta Moro, A., Shaboviq, Q., Maranzano, P., Cameletti, M., ... & Otto, P. (2023). Agrimonia: a dataset on livestock, meteorology and air quality in the Lombardy region, Italy. Scientific Data, 10(1), 143.
+
+*   **Oxford COVID-19 Government Response Tracker (OxCGRT):**
+    *   Hale, T., et al. (2021). "A global panel database of pandemic policies". *Nature Human Behaviour*.
 
 **Software and Libraries**
 
-*   **R Core Team** (2025). *R: A Language and Environment for Statistical Computing*. R Foundation for Statistical Computing.
+*   R Core Team (2025). R: A Language and Environment for Statistical Computing. R Foundation for Statistical Computing.
