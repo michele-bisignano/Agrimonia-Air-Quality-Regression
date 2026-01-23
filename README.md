@@ -45,6 +45,12 @@ The study is structured into three main parts:
 
 ---
 
+## 🗂 Repository Structure
+
+You can browse the full file tree by clicking **[here](./tree_structure.md)**.
+
+---
+
 ## 📚 Data Sources & Citations
 The analysis is based on the **Agrimonia** dataset. Per the authors' requirements, we cite the dataset and the related publication as follows:
 
